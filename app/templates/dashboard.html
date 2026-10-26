@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UrbanVision Analytics | Auditoria de Infraestrutura Urbana</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Leaflet CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar-active { background-color: #1E293B; border-left: 4px solid #38BDF8; }
+        #map { height: 580px; border-radius: 0.75rem; z-index: 10; }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans antialiased min-h-screen flex flex-col">
+
+    <!-- Top Navigation Bar -->
+    <header class="bg-slate-950 border-b border-slate-800 px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 bg-sky-500 rounded-lg flex items-center justify-center font-black text-slate-950 text-xl tracking-wider shadow-lg shadow-sky-500/20">
+                UV
+            </div>
+            <div>
+                <h1 class="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                    UrbanVision <span class="text-sky-400 font-medium">Analytics</span>
+                    <span class="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded border border-slate-700">v{{ version }}</span>
+                </h1>
+                <p class="text-xs text-slate-400">Auditoria Automática de Severidade Viária e Pavimento (P0 / MVP)</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-4">
+            <div class="flex items-center gap-2 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span class="text-slate-400">Campanha Ativa:</span>
+                <span id="currentCampaignName" class="font-semibold text-slate-200">Carregando...</span>
+            </div>
+            <div class="text-xs text-slate-400">
+                Última atualização: <span id="lastUpdateTime" class="font-mono text-slate-300">--:--:--</span>
+            </div>
+            <button onclick="refreshData()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-medium rounded-lg text-slate-200 transition flex items-center gap-1.5 border border-slate-700">
+                <i class="fa-solid fa-arrows-rotate"></i> Atualizar
+            </button>
+        </div>
+    </header>
+
+    <div class="flex flex-1">
+        <!-- Sidebar Menu (Seção 04 / Componentes de Tela) -->
+        <aside class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col justify-between py-4">
+            <nav class="space-y-1 px-3">
+                <button onclick="switchTab('overview')" id="tab-btn-overview" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-900 transition sidebar-active">
+                    <i class="fa-solid fa-chart-pie w-5 text-sky-400"></i> Visão Geral
+                </button>
+                <button onclick="switchTab('campaigns')" id="tab-btn-campaigns" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
+                    <i class="fa-solid fa-layer-group w-5 text-indigo-400"></i> Campanhas & Lotes
+                </button>
+                <button onclick="switchTab('imports')" id="tab-btn-imports" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
+                    <i class="fa-solid fa-cloud-arrow-up w-5 text-emerald-400"></i> Importações
+                </button>
+                <button onclick="switchTab('review')" id="tab-btn-review" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
+                    <i class="fa-solid fa-magnifying-glass-chart w-5 text-amber-400"></i> Revisão de Evidências
+                </button>
+                <button onclick="switchTab('mapTab')" id="tab-btn-mapTab" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
+                    <i class="fa-solid fa-map-location-dot w-5 text-blue-400"></i> Mapa Operacional
+                </button>
+                <button onclick="switchTab('indicators')" id="tab-btn-indicators" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
+                    <i class="fa-solid fa-calculator w-5 text-purple-400"></i> Indicadores & IDU
+                </button>
+                <button onclick="switchTab('reports')" id="tab-btn-reports" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
+                    <i class="fa-solid fa-file-pdf w-5 text-rose-400"></i> Relatórios & Exportação
+                </button>
+            </nav>
+
+            <div class="px-4 py-3 border-t border-slate-800/80 text-[11px] text-slate-500 space-y-1">
+                <div>Taxonomia: <span class="text-slate-400">RDD2022 (D00-D40)</span></div>
+                <div>Método Espacial: <span class="text-slate-400">Geodésico WGS84</span></div>
+                <div>IDU Calibrado: <span class="text-slate-400">Sref = 40.0</span></div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 bg-slate-900 p-6 overflow-y-auto max-h-[calc(100vh-61px)]">
+
+            <!-- TAB 1: VISÃO GERAL -->
+            <section id="tab-overview" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Ocorrências Únicas</span>
+                            <span class="p-2 bg-sky-500/10 text-sky-400 rounded-lg text-sm"><i class="fa-solid fa-road-barrier"></i></span>
+                        </div>
+                        <div id="statTotalOccurrences" class="text-2xl font-bold text-white mt-2">0</div>
+                        <div class="text-xs text-slate-500 mt-1"><span id="statConfirmedOccurrences" class="text-emerald-400 font-semibold">0</span> confirmadas</div>
+                    </div>
+
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Malha Inspecionada (L_obs)</span>
+                            <span class="p-2 bg-indigo-500/10 text-indigo-400 rounded-lg text-sm"><i class="fa-solid fa-route"></i></span>
+                        </div>
+                        <div id="statInspectedKm" class="text-2xl font-bold text-white mt-2">0.0 km</div>
+                        <div class="text-xs text-slate-500 mt-1">Extensão única contínua</div>
+                    </div>
+
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Cobertura Média</span>
+                            <span class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg text-sm"><i class="fa-solid fa-percent"></i></span>
+                        </div>
+                        <div id="statAvgCoverage" class="text-2xl font-bold text-white mt-2">0.0%</div>
+                        <div class="text-xs text-slate-500 mt-1">Mínimo para elegibilidade: 60%</div>
+                    </div>
+
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 shadow-sm">
+                        <div class="flex justify-between items-start">
+                            <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Densidade Municipal</span>
+                            <span class="p-2 bg-purple-500/10 text-purple-400 rounded-lg text-sm"><i class="fa-solid fa-chart-line"></i></span>
+                        </div>
+                        <div id="statMunicipalDensity" class="text-2xl font-bold text-white mt-2">0.0 /km</div>
+                        <div class="text-xs text-slate-500 mt-1">Média ponderada nos elegíveis</div>
+                    </div>
+                </div>
+
+                <!-- Painel Informativo de Taxonomia e Estado do MVP -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+                        <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-boxes-stacked text-sky-400"></i> Distribuição por Classe de Dano (RDD2022)
+                        </h2>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+                                <div class="text-[11px] font-bold text-sky-400">D00</div>
+                                <div class="text-xs text-slate-300 font-medium mt-0.5">Trinca Long.</div>
+                                <div id="countD00" class="text-lg font-bold text-white mt-1">0</div>
+                            </div>
+                            <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+                                <div class="text-[11px] font-bold text-indigo-400">D10</div>
+                                <div class="text-xs text-slate-300 font-medium mt-0.5">Trinca Trans.</div>
+                                <div id="countD10" class="text-lg font-bold text-white mt-1">0</div>
+                            </div>
+                            <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+                                <div class="text-[11px] font-bold text-amber-400">D20</div>
+                                <div class="text-xs text-slate-300 font-medium mt-0.5">Jacaré/Malha</div>
+                                <div id="countD20" class="text-lg font-bold text-white mt-1">0</div>
+                            </div>
+                            <div class="bg-slate-900/80 p-3 rounded-lg border border-slate-800">
+                                <div class="text-[11px] font-bold text-rose-400">D40</div>
+                                <div class="text-xs text-slate-300 font-medium mt-0.5">Buraco</div>
+                                <div id="countD40" class="text-lg font-bold text-white mt-1">0</div>
+                            </div>
+                        </div>
+
+                        <div class="pt-2">
+                            <h3 class="text-xs font-semibold text-slate-400 uppercase mb-2">Princípios do Sistema (Auditabilidade & Limites)</h3>
+                            <ul class="text-xs text-slate-400 space-y-1.5 list-disc pl-4">
+                                <li>Posição geodésica WGS84 com cálculo exato de incerteza da captura;</li>
+                                <li>Sem extrapolação automática de custos, risco ou profundidade apenas por fotografia;</li>
+                                <li>Revisão técnica com versionamento otimista e trilha de auditoria para cada alteração.</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4 flex flex-col justify-between">
+                        <div>
+                            <h2 class="text-base font-semibold text-white flex items-center gap-2 mb-3">
+                                <i class="fa-solid fa-play text-emerald-400"></i> Ações Rápidas de Piloto
+                            </h2>
+                            <p class="text-xs text-slate-400 mb-4">
+                                Para fins de validação e demonstração dos critérios de aceite (AT-01 a AT-08), inicialize os dados do território piloto com malhas e amostras.
+                            </p>
+                        </div>
+                        <div class="space-y-2">
+                            <button onclick="bootstrapPilotData()" class="w-full py-2.5 px-4 bg-sky-600 hover:bg-sky-500 font-medium text-xs text-white rounded-lg transition shadow-sm flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i> Carregar Dados do Piloto (Campanha + Malha + Lote)
+                            </button>
+                            <button onclick="switchTab('imports')" class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 font-medium text-xs text-slate-200 rounded-lg transition border border-slate-700 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-upload"></i> Enviar Novas Imagens
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: CAMPANHAS & LOTES -->
+            <section id="tab-campaigns" class="hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Campanhas Territoriais</h2>
+                        <p class="text-xs text-slate-400">Cadastro de municípios, períodos, responsáveis e malha viária (RF-01)</p>
+                    </div>
+                    <button onclick="openNewCampaignModal()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-xs font-semibold rounded-lg text-white transition flex items-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Nova Campanha
+                    </button>
+                </div>
+
+                <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-900 text-slate-400 uppercase font-semibold border-b border-slate-800">
+                            <tr>
+                                <th class="p-3.5">ID</th>
+                                <th class="p-3.5">Município</th>
+                                <th class="p-3.5">Período</th>
+                                <th class="p-3.5">Responsável</th>
+                                <th class="p-3.5">Status</th>
+                                <th class="p-3.5">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="campaignsTableBody" class="divide-y divide-slate-800/60">
+                            <tr>
+                                <td colspan="6" class="p-4 text-center text-slate-500">Nenhuma campanha cadastrada.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- TAB 3: IMPORTAÇÕES -->
+            <section id="tab-imports" class="hidden space-y-6">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Importação e Ingestão de Imagens</h2>
+                    <p class="text-xs text-slate-400">Validação de formato real, cálculo de SHA-256, EXIF GPS e qualidade de captura (RF-02 a RF-04)</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+                        <h3 class="text-sm font-semibold text-white">1. Enviar Lote de Imagens</h3>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Selecionar Campanha</label>
+                            <select id="uploadCampaignSelect" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-sky-500">
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Arquivos JPEG / PNG</label>
+                            <input type="file" id="imageFilesInput" multiple accept="image/jpeg,image/png" class="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 cursor-pointer">
+                        </div>
+                        <button onclick="uploadImages()" id="btnUploadImages" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold rounded-lg text-white transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-cloud-arrow-up"></i> Iniciar Ingestão do Lote
+                        </button>
+                    </div>
+
+                    <div class="md:col-span-2 bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
+                        <h3 class="text-sm font-semibold text-white">2. Relatório de Validação por Arquivo</h3>
+                        <div id="uploadResultsArea" class="h-64 overflow-y-auto space-y-2 pr-1 text-xs">
+                            <div class="text-slate-500 text-center py-10">Aguardando envio de lote para validação técnica...</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: REVISÃO DE EVIDÊNCIAS -->
+            <section id="tab-review" class="hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Fila de Revisão Técnica de Evidências</h2>
+                        <p class="text-xs text-slate-400">Validação humana de classe, localização e auditoria com concorrência otimista (RF-08, AT-07)</p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <select id="reviewStatusFilter" onchange="loadReviewOccurrences()" class="bg-slate-950 border border-slate-800 text-xs rounded-lg p-2 text-slate-200">
+                            <option value="">Todos os status</option>
+                            <option value="candidata" selected>Candidatas</option>
+                            <option value="confirmada">Confirmadas</option>
+                            <option value="rejeitada">Rejeitadas</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div id="reviewCardsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <!-- Cards de Ocorrências para Revisão -->
+                </div>
+            </section>
+
+            <!-- TAB 5: MAPA OPERACIONAL -->
+            <section id="tab-mapTab" class="hidden space-y-4">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Mapa Operacional de Ocorrências e Degradação</h2>
+                        <p class="text-xs text-slate-400">Visualização geodésica em WGS84 com raio de incerteza e camadas territoriais (RF-11, RF-13)</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs text-slate-400">Legenda:</span>
+                        <span class="text-[11px] px-2 py-0.5 rounded bg-sky-950 border border-sky-600 text-sky-400">D00 Long.</span>
+                        <span class="text-[11px] px-2 py-0.5 rounded bg-indigo-950 border border-indigo-600 text-indigo-400">D10 Trans.</span>
+                        <span class="text-[11px] px-2 py-0.5 rounded bg-amber-950 border border-amber-600 text-amber-400">D20 Jacaré</span>
+                        <span class="text-[11px] px-2 py-0.5 rounded bg-rose-950 border border-rose-600 text-rose-400">D40 Buraco</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 shadow-inner">
+                    <div id="map"></div>
+                </div>
+            </section>
+
+            <!-- TAB 6: INDICADORES & IDU -->
+            <section id="tab-indicators" class="hidden space-y-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Índice de Degradação Urbana (IDU-Pavimento)</h2>
+                        <p class="text-xs text-slate-400">Cálculo versionado conforme Seção 08 (N, L_obs, Cobertura %, Densidade, Carga, IDU Score)</p>
+                    </div>
+                    <button onclick="recalculateIDU()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-xs font-semibold rounded-lg text-white transition flex items-center gap-2">
+                        <i class="fa-solid fa-calculator"></i> Recalcular Indicadores
+                    </button>
+                </div>
+
+                <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
+                    <table class="w-full text-left text-xs text-slate-300">
+                        <thead class="bg-slate-900 text-slate-400 uppercase font-semibold border-b border-slate-800">
+                            <tr>
+                                <th class="p-3.5">Bairro</th>
+                                <th class="p-3.5">L_obs (km)</th>
+                                <th class="p-3.5">L_eleg (km)</th>
+                                <th class="p-3.5">Cobertura (%)</th>
+                                <th class="p-3.5">Confirmadas (N)</th>
+                                <th class="p-3.5">Densidade (/km)</th>
+                                <th class="p-3.5">IDU Score</th>
+                                <th class="p-3.5">Faixa de Severidade</th>
+                                <th class="p-3.5">Elegibilidade</th>
+                            </tr>
+                        </thead>
+                        <tbody id="indicatorsTableBody" class="divide-y divide-slate-800/60">
+                            <tr>
+                                <td colspan="9" class="p-4 text-center text-slate-500">Nenhum indicador calculado.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 text-xs space-y-2">
+                    <div class="font-semibold text-slate-300">Regras de Elegibilidade & Classificação do IDU:</div>
+                    <div class="text-slate-400 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <div>• Elegibilidade: <span class="text-slate-200">Cobertura &ge; 60% e L_obs &ge; 1,0 km</span></div>
+                        <div>• Sref de Referência Congelado: <span class="text-slate-200">40,0 /km</span></div>
+                        <div>• Faixas: <span class="text-slate-200">[0,25) Baixa | [25,50) Moderada | [50,75) Alta | [75,100] Muito Alta</span></div>
+                        <div>• Média Municipal: <span class="text-slate-200">Ponderada por soma(N) / soma(L_obs) dos territórios elegíveis</span></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 7: RELATÓRIOS & EXPORTAÇÃO -->
+            <section id="tab-reports" class="hidden space-y-6">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Relatórios Executivos e Exportação de Dados</h2>
+                    <p class="text-xs text-slate-400">Emissão de relatórios em PDF com hash SHA-256 e exportação em CSV / GeoJSON (RF-16 a RF-18)</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+                        <h3 class="text-sm font-semibold text-white">Gerar Novo Relatório PDF</h3>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Responsável Técnico / Autor</label>
+                            <input type="text" id="reportAuthorInput" value="Eng. Revisor Técnico" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg p-2.5 text-slate-200">
+                        </div>
+                        <button onclick="generateReportPDF()" id="btnGenPDF" class="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-xs font-semibold rounded-lg text-white transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-file-pdf"></i> Emitir Relatório Executivo
+                        </button>
+
+                        <hr class="border-slate-800">
+
+                        <h3 class="text-sm font-semibold text-white">Exportação de Dados Brutos</h3>
+                        <div class="space-y-2">
+                            <button onclick="downloadExport('csv')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 font-medium rounded-lg border border-slate-700 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-file-csv text-emerald-400"></i> Exportar CSV de Ocorrências
+                            </button>
+                            <button onclick="downloadExport('geojson')" class="w-full py-2 bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 font-medium rounded-lg border border-slate-700 flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-draw-polygon text-sky-400"></i> Exportar GeoJSON WGS84
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="md:col-span-2 bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
+                        <h3 class="text-sm font-semibold text-white">Relatórios Gerados e Auditáveis</h3>
+                        <div id="reportsListContainer" class="space-y-3">
+                            <div class="text-center text-slate-500 py-10 text-xs">Nenhum relatório emitido até o momento.</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Script de Comportamento e Integração da UI -->
+    <script>
+        let activeCampaign = null;
+        let campaigns = [];
+        let occurrences = [];
+        let map = null;
+        let mapMarkersLayer = null;
+
+        function updateClock() {
+            document.getElementById('lastUpdateTime').innerText = new Date().toLocaleTimeString('pt-BR');
+        }
+
+        function switchTab(tabId) {
+            ['overview', 'campaigns', 'imports', 'review', 'mapTab', 'indicators', 'reports'].forEach(id => {
+                const el = document.getElementById('tab-' + id);
+                const btn = document.getElementById('tab-btn-' + id);
+                if (id === tabId) {
+                    el.classList.remove('hidden');
+                    btn.classList.add('sidebar-active');
+                    btn.classList.remove('text-slate-400');
+                    btn.classList.add('text-slate-300');
+                } else {
+                    el.classList.add('hidden');
+                    btn.classList.remove('sidebar-active');
+                    btn.classList.remove('text-slate-300');
+                    btn.classList.add('text-slate-400');
+                }
+            });
+
+            if (tabId === 'mapTab') {
+                setTimeout(() => {
+                    initMapIfNeeded();
+                    if (map) map.invalidateSize();
+                }, 100);
+            }
+        }
+
+        async function apiGet(endpoint) {
+            const res = await fetch('/v1' + endpoint);
+            if (!res.ok) throw new Error(await res.text());
+            return await res.json();
+        }
+
+        async function apiPost(endpoint, body) {
+            const res = await fetch('/v1' + endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (!res.ok) throw new Error(await res.text());
+            return await res.json();
+        }
+
+        async function refreshData() {
+            try {
+                campaigns = await apiGet('/campanhas');
+                renderCampaigns();
+
+                if (campaigns.length > 0) {
+                    if (!activeCampaign) activeCampaign = campaigns[0];
+                    document.getElementById('currentCampaignName').innerText = `${activeCampaign.municipio} (${activeCampaign.periodo})`;
+
+                    occurrences = await apiGet(`/ocorrencias?campanha_id=${activeCampaign.id}`);
+                    renderOverview();
+                    renderMapMarkers();
+                    loadReviewOccurrences();
+                    loadIndicators();
+                } else {
+                    document.getElementById('currentCampaignName').innerText = 'Nenhuma campanha';
+                }
+                updateClock();
+            } catch (err) {
+                console.error("Erro ao atualizar dados:", err);
+            }
+        }
+
+        function renderCampaigns() {
+            const tbody = document.getElementById('campaignsTableBody');
+            const select = document.getElementById('uploadCampaignSelect');
+            select.innerHTML = '';
+
+            if (campaigns.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-500">Nenhuma campanha cadastrada.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = campaigns.map(c => `
+                <tr class="hover:bg-slate-900/60 transition">
+                    <td class="p-3.5 font-mono text-slate-400">${c.id}</td>
+                    <td class="p-3.5 font-medium text-white">${c.municipio}</td>
+                    <td class="p-3.5 text-slate-300">${c.periodo}</td>
+                    <td class="p-3.5 text-slate-300">${c.responsavel}</td>
+                    <td class="p-3.5"><span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">${c.status}</span></td>
+                    <td class="p-3.5">
+                        <button onclick="setActiveCampaign('${c.id}')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded text-xs border border-slate-700">
+                            Selecionar
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            campaigns.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.innerText = `${c.municipio} - ${c.periodo}`;
+                select.appendChild(opt);
+            });
+        }
+
+        function setActiveCampaign(cId) {
+            activeCampaign = campaigns.find(c => c.id === cId);
+            refreshData();
+        }
+
+        function renderOverview() {
+            document.getElementById('statTotalOccurrences').innerText = occurrences.length;
+            const confirmed = occurrences.filter(o => o.status === 'confirmada').length;
+            document.getElementById('statConfirmedOccurrences').innerText = confirmed;
+
+            let d00 = 0, d10 = 0, d20 = 0, d40 = 0;
+            occurrences.forEach(o => {
+                if (o.classe === 'D00') d00++;
+                if (o.classe === 'D10') d10++;
+                if (o.classe === 'D20') d20++;
+                if (o.classe === 'D40') d40++;
+            });
+            document.getElementById('countD00').innerText = d00;
+            document.getElementById('countD10').innerText = d10;
+            document.getElementById('countD20').innerText = d20;
+            document.getElementById('countD40').innerText = d40;
+        }
+
+        function initMapIfNeeded() {
+            if (!map) {
+                map = L.map('map').setView([-23.5505, -46.6333], 14);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap contributors | UrbanVision'
+                }).addTo(map);
+                mapMarkersLayer = L.layerGroup().addTo(map);
+            }
+        }
+
+        function renderMapMarkers() {
+            initMapIfNeeded();
+            if (!mapMarkersLayer) return;
+            mapMarkersLayer.clearLayers();
+
+            if (occurrences.length === 0) return;
+
+            const bounds = [];
+            const colorMap = {
+                'D00': '#38BDF8',
+                'D10': '#818CF8',
+                'D20': '#FBBF24',
+                'D40': '#F43F5E'
+            };
+
+            occurrences.forEach(o => {
+                const color = colorMap[o.classe] || '#94A3B8';
+                const latLng = [o.latitude, o.longitude];
+                bounds.push(latLng);
+
+                // Círculo de incerteza da captura (RN-01)
+                L.circle(latLng, {
+                    radius: o.incerteza_metros || 5,
+                    color: color,
+                    weight: 1,
+                    opacity: 0.4,
+                    fillColor: color,
+                    fillOpacity: 0.15
+                }).addTo(mapMarkersLayer);
+
+                // Marcador pontual
+                const marker = L.circleMarker(latLng, {
+                    radius: 7,
+                    fillColor: color,
+                    color: '#0F172A',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.95
+                }).addTo(mapMarkersLayer);
+
+                marker.bindPopup(`
+                    <div style="color: #0F172A; font-size: 12px; font-family: sans-serif; min-width: 180px;">
+                        <div style="font-weight: bold; color: ${color};">${o.classe} - ${getTaxonomyName(o.classe)}</div>
+                        <div><b>Confiança:</b> ${(o.confianca * 100).toFixed(1)}%</div>
+                        <div><b>Status:</b> ${o.status}</div>
+                        <div><b>Incerteza:</b> &plusmn;${o.incerteza_metros} m (estimada)</div>
+                        <div><b>Via:</b> ${o.via_nome}</div>
+                        <div><b>Bairro:</b> ${o.bairro_nome}</div>
+                    </div>
+                `);
+            });
+
+            if (bounds.length > 0) {
+                map.fitBounds(bounds, { padding: [40, 40] });
+            }
+        }
+
+        function getTaxonomyName(cls) {
+            const map = {
+                'D00': 'Trinca Longitudinal',
+                'D10': 'Trinca Transversal',
+                'D20': 'Trinca tipo Malha/Jacaré',
+                'D40': 'Buraco (Pothole)'
+            };
+            return map[cls] || cls;
+        }
+
+        async function loadReviewOccurrences() {
+            if (!activeCampaign) return;
+            const statusFilter = document.getElementById('reviewStatusFilter').value;
+            let url = `/ocorrencias?campanha_id=${activeCampaign.id}`;
+            if (statusFilter) url += `&status=${statusFilter}`;
+
+            const occs = await apiGet(url);
+            const container = document.getElementById('reviewCardsContainer');
+
+            if (occs.length === 0) {
+                container.innerHTML = '<div class="col-span-3 text-center py-12 text-slate-500 text-xs">Nenhuma ocorrência encontrada para os filtros selecionados.</div>';
+                return;
+            }
+
+            container.innerHTML = occs.map(o => `
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="text-xs font-mono text-slate-500">${o.id.substring(0, 10)}</span>
+                            <div class="text-sm font-bold text-white flex items-center gap-2">
+                                <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-sky-400 text-xs">${o.classe}</span>
+                                ${getTaxonomyName(o.classe)}
+                            </div>
+                        </div>
+                        <span class="text-xs px-2 py-0.5 rounded ${o.status === 'confirmada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : o.status === 'rejeitada' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">
+                            ${o.status}
+                        </span>
+                    </div>
+
+                    <!-- Imagem de Recorte (Crop) ou placeholder se não houver -->
+                    <div class="h-40 bg-slate-900 rounded-lg overflow-hidden border border-slate-800 flex items-center justify-center relative">
+                        ${o.deteccoes && o.deteccoes.length > 0 && o.deteccoes[0].recorte_uri ? 
+                            `<img src="${o.deteccoes[0].recorte_uri}" alt="Recorte de dano" class="object-cover w-full h-full">` :
+                            `<div class="text-slate-600 text-xs flex flex-col items-center gap-1"><i class="fa-solid fa-camera text-xl"></i><span>Foto GPS da Captura</span></div>`
+                        }
+                        <div class="absolute bottom-2 left-2 bg-slate-950/80 px-2 py-0.5 rounded text-[10px] text-slate-300 backdrop-blur">
+                            Confiança: ${(o.confianca * 100).toFixed(0)}%
+                        </div>
+                    </div>
+
+                    <div class="text-xs text-slate-400 space-y-1">
+                        <div><i class="fa-solid fa-location-dot text-slate-500 w-4"></i> ${o.latitude.toFixed(5)}, ${o.longitude.toFixed(5)} (&plusmn;${o.incerteza_metros}m)</div>
+                        <div><i class="fa-solid fa-road text-slate-500 w-4"></i> ${o.via_nome} - ${o.bairro_nome}</div>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-800/80 flex items-center gap-2">
+                        <button onclick="reviewOccurrence('${o.id}', ${o.versao}, 'confirmada')" class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold rounded text-white transition">
+                            <i class="fa-solid fa-check"></i> Confirmar
+                        </button>
+                        <button onclick="reviewOccurrence('${o.id}', ${o.versao}, 'rejeitada')" class="flex-1 py-1.5 bg-rose-600 hover:bg-rose-500 text-xs font-semibold rounded text-white transition">
+                            <i class="fa-solid fa-xmark"></i> Rejeitar
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function reviewOccurrence(id, versaoEsperada, novoStatus) {
+            const revisor = "Eng. Auditor";
+            const motivo = `Revisão técnica de campo: ${novoStatus}`;
+            try {
+                const res = await fetch(`/v1/ocorrencias/${id}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        versao_esperada: versaoEsperada,
+                        revisor: revisor,
+                        motivo: motivo,
+                        status: novoStatus
+                    })
+                });
+
+                if (res.status === 409) {
+                    alert("Aviso de Concorrência: esta ocorrência foi alterada por outro revisor simultaneamente. A tela será atualizada.");
+                    refreshData();
+                    return;
+                }
+
+                if (!res.ok) throw new Error(await res.text());
+                refreshData();
+            } catch (err) {
+                alert("Erro ao revisar ocorrência: " + err.message);
+            }
+        }
+
+        async function loadIndicators() {
+            if (!activeCampaign) return;
+            const indicators = await apiGet(`/indicadores?campanha_id=${activeCampaign.id}`);
+            const tbody = document.getElementById('indicatorsTableBody');
+
+            if (indicators.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-slate-500">Nenhum indicador registrado. Clique em Recalcular Indicadores.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = indicators.map(ind => `
+                <tr class="hover:bg-slate-900/60 transition">
+                    <td class="p-3.5 font-medium text-white">${ind.bairro_nome}</td>
+                    <td class="p-3.5">${ind.L_obs.toFixed(2)}</td>
+                    <td class="p-3.5">${ind.L_eleg.toFixed(2)}</td>
+                    <td class="p-3.5 font-semibold ${ind.cobertura_pct >= 60 ? 'text-emerald-400' : 'text-amber-400'}">${ind.cobertura_pct.toFixed(1)}%</td>
+                    <td class="p-3.5">${ind.N_confirmadas}</td>
+                    <td class="p-3.5 font-bold">${ind.densidade.toFixed(1)}</td>
+                    <td class="p-3.5 font-bold text-sky-400">${ind.idu_score.toFixed(1)}</td>
+                    <td class="p-3.5">
+                        <span class="px-2 py-0.5 rounded text-xs ${
+                            ind.faixa === 'Baixa' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            ind.faixa === 'Moderada' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                            ind.faixa === 'Alta' ? 'bg-orange-500/10 text-orange-400 border border-orange-500/20' :
+                            'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }">${ind.faixa}</span>
+                    </td>
+                    <td class="p-3.5 text-xs">
+                        ${ind.elegivel ? '<span class="text-emerald-400 font-medium"><i class="fa-solid fa-check"></i> Elegível</span>' : '<span class="text-rose-400 font-medium" title="' + ind.motivo_inelegivel + '"><i class="fa-solid fa-circle-exclamation"></i> Inelegível</span>'}
+                    </td>
+                </tr>
+            `).join('');
+
+            // Atualiza estatísticas do dashboard
+            let sumLobs = 0;
+            let sumCov = 0;
+            indicators.forEach(i => {
+                sumLobs += i.L_obs;
+                sumCov += i.cobertura_pct;
+            });
+            document.getElementById('statInspectedKm').innerText = sumLobs.toFixed(1) + ' km';
+            document.getElementById('statAvgCoverage').innerText = (indicators.length > 0 ? (sumCov / indicators.length).toFixed(1) : '0.0') + '%';
+
+            const elegiveis = indicators.filter(i => i.elegivel);
+            if (elegiveis.length > 0) {
+                const totalN = elegiveis.reduce((a, b) => a + b.N_confirmadas, 0);
+                const totalL = elegiveis.reduce((a, b) => a + b.L_obs, 0);
+                const munD = totalL > 0 ? (totalN / totalL).toFixed(1) : '0.0';
+                document.getElementById('statMunicipalDensity').innerText = munD + ' /km';
+            }
+        }
+
+        async function recalculateIDU() {
+            if (!activeCampaign) return;
+            try {
+                await apiGet(`/indicadores?campanha_id=${activeCampaign.id}&recalcular=true`);
+                refreshData();
+                alert("Indicadores recalculados com sucesso conforme regras da Seção 08!");
+            } catch (err) {
+                alert("Erro ao recalcular: " + err.message);
+            }
+        }
+
+        async function generateReportPDF() {
+            if (!activeCampaign) return;
+            const btn = document.getElementById('btnGenPDF');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Gerando PDF...';
+
+            try {
+                const autor = document.getElementById('reportAuthorInput').value || 'Eng. Auditor';
+                const res = await apiPost('/relatorios', {
+                    campanha_id: activeCampaign.id,
+                    autor: autor
+                });
+
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-file-pdf"></i> Emitir Relatório Executivo';
+
+                renderReportItem(res);
+                alert("Relatório Executivo PDF gerado com sucesso com Hash SHA-256 e conclusões determinísticas!");
+            } catch (err) {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-file-pdf"></i> Emitir Relatório Executivo';
+                alert("Erro ao gerar relatório: " + err.message);
+            }
+        }
+
+        function renderReportItem(rep) {
+            const container = document.getElementById('reportsListContainer');
+            if (container.innerText.includes('Nenhum relatório')) {
+                container.innerHTML = '';
+            }
+
+            const item = document.createElement('div');
+            item.className = 'bg-slate-900 p-4 rounded-lg border border-slate-800 space-y-2';
+            item.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <div class="font-bold text-white text-xs">Relatório Executivo v${rep.versao}</div>
+                        <div class="text-[11px] text-slate-400">Autor: ${rep.autor} | Emissão: ${new Date(rep.data_utc).toLocaleString('pt-BR')}</div>
+                    </div>
+                    <a href="/v1/relatorios/${rep.id}/download" target="_blank" class="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-xs font-semibold rounded text-white transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-download"></i> Baixar PDF
+                    </a>
+                </div>
+                <div class="text-[11px] font-mono text-slate-400 bg-slate-950 p-2 rounded border border-slate-800 break-all">
+                    <b>SHA-256:</b> ${rep.hash_pdf}
+                </div>
+                ${rep.texto_conclusao ? `
+                    <div class="text-xs text-slate-300 bg-slate-950/60 p-2.5 rounded border border-slate-800 italic">
+                        <b>Conclusões Automatizadas:</b><br>${rep.texto_conclusao.replace(/\n\n/g, '<br><br>')}
+                    </div>
+                ` : ''}
+            `;
+            container.prepend(item);
+        }
+
+        function downloadExport(type) {
+            if (!activeCampaign) return;
+            window.location.href = `/v1/export/${type}?campanha_id=${activeCampaign.id}`;
+        }
+
+        async function bootstrapPilotData() {
+            try {
+                // 1. Cria Campanha de Referência do Piloto
+                const cpg = await apiPost('/campanhas', {
+                    municipio: "São Paulo - Piloto Zona Sul",
+                    periodo: "2026-Q4",
+                    responsavel: "Eng. Coordenador de Auditoria",
+                    organizacao: "Secretaria Municipal de Infraestrutura Urbana",
+                    malha_versao: "v1.0-piloto",
+                    protocolo: "Padrao_Carro_Urbano_1080p"
+                });
+
+                // 2. Cria Lote
+                const lote = await apiPost('/lotes', {
+                    campanha_id: cpg.id
+                });
+
+                // 3. Executa inferência e cria ocorrências amostrais do piloto
+                await apiPost(`/lotes/${lote.id}/execucoes`, {});
+
+                activeCampaign = cpg;
+                await refreshData();
+                await recalculateIDU();
+                alert("Dados do território piloto carregados com sucesso! Malha viária, ocorrências e indicadores prontos.");
+            } catch (err) {
+                alert("Erro ao carregar piloto: " + err.message);
+            }
+        }
+
+        // Inicialização ao carregar a página
+        window.addEventListener('DOMContentLoaded', () => {
+            refreshData();
+        });
+    </script>
+</body>
+</html>
+
