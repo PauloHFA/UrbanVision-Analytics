@@ -55,5 +55,9 @@ app.include_router(api_router)
 
 @app.get("/")
 def dashboard(request: Request):
-    return templates.TemplateResponse("dashboard.html", {"request": request, "version": settings.VERSION})
+    return templates.TemplateResponse(
+        request=request,
+        name="dashboard.html",
+        context={"version": settings.VERSION}
+    )
 
