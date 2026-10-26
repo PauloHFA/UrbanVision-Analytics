@@ -154,6 +154,39 @@ class Ocorrencia(Base):
     campanha = relationship("Campanha", back_populates="ocorrencias")
     deteccoes = relationship("Deteccao", secondary=ocorrencia_deteccao, back_populates="ocorrencias")
     revisoes = relationship("Revisao", back_populates="ocorrencia", cascade="all, delete-orphan")
+    intervencoes = relationship("Intervencao", back_populates="ocorrencia", cascade="all, delete-orphan")
+    ordens_servico = relationship("OrdemServico", back_populates="ocorrencia", cascade="all, delete-orphan")
+
+
+class Intervencao(Base):
+    __tablename__ = "intervencoes"
+
+    id = Column(String, primary_key=True, default=lambda: generate_id("itv"))
+    ocorrencia_id = Column(String, ForeignKey("ocorrencias.id"), nullable=False)
+    tipo = Column(String, nullable=False)  # dano_persistente, reparo_confirmado, ausencia_observacao (RF-14)
+    descricao = Column(Text, nullable=False)
+    autor = Column(String, nullable=False)
+    data_inspecao = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    evidencia_foto_uri = Column(String, nullable=True)
+    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    ocorrencia = relationship("Ocorrencia", back_populates="intervencoes")
+
+
+class OrdemServico(Base):
+    __tablename__ = "ordens_servico"
+
+    id = Column(String, primary_key=True, default=lambda: generate_id("os"))
+    ocorrencia_id = Column(String, ForeignKey("ocorrencias.id"), nullable=False)
+    numero_os = Column(String, nullable=False, index=True)
+    orgao_responsavel = Column(String, default="Secretaria de Infraestrutura Urbana")
+    status_os = Column(String, default="aberta")  # aberta, em_execucao, concluida, cancelada (RF-20)
+    data_abertura = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    data_conclusao = Column(DateTime, nullable=True)
+    observacoes = Column(Text, nullable=True)
+    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    ocorrencia = relationship("Ocorrencia", back_populates="ordens_servico")
 
 
 class Revisao(Base):

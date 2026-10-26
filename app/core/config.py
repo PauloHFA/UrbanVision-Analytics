@@ -28,12 +28,14 @@ class Settings(BaseModel):
     MAX_IMAGE_SIZE_MB: int = 20
     MAX_IMAGES_PER_BATCH: int = 5000
     
-    # Taxonomia oficial RDD2022 (RD-01)
+    # Taxonomia oficial RDD2022 (RD-01) e Expansão P1 (RD-02)
     TAXONOMY: dict[str, str] = {
         "D00": "Trinca Longitudinal",
         "D10": "Trinca Transversal",
         "D20": "Trinca tipo Malha/Jacaré",
-        "D40": "Buraco (Pothole)"
+        "D40": "Buraco (Pothole)",
+        "M01": "Sinalização Horizontal Desgastada",
+        "S01": "Placa de Sinalização Deteriorada"
     }
 
 settings = Settings()

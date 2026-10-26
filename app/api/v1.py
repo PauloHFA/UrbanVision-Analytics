@@ -20,11 +20,15 @@ from app.schemas.schemas import (
     ModeloCreate, ModeloResponse,
     ParametrosCreate, ParametrosResponse,
     IndicadorResponse,
-    RelatorioCreate, RelatorioResponse
+    RelatorioCreate, RelatorioResponse,
+    IntervencaoCreate, IntervencaoResponse,
+    OrdemServicoCreate, OrdemServicoResponse,
+    HistoricoOcorrenciaResponse
 )
 from app.services.ingestion import (
     compute_sha256, extract_exif_metadata, check_image_quality, parse_manifest_csv
 )
+from app.services.video import extract_frames_from_video
 from app.services.detector import DamageDetector
 from app.services.deduplication import cluster_detections_into_occurrences
 from app.services.spatial import match_point_to_territory, calculate_unique_observed_length_km
@@ -827,3 +831,203 @@ def criar_configuracao_parametros(payload: ParametrosCreate, db: Session = Depen
     db.commit()
     db.refresh(cfg)
     return cfg
+
+
+# --- 11. Histórico de Re-inspeções e Intervenções de Manutenção (RF-14) ---
+@router.post("/ocorrencias/{id}/intervencoes", response_model=IntervencaoResponse)
+def registrar_intervencao_reinspecao(id: str, payload: IntervencaoCreate, db: Session = Depends(get_db)):
+    """
+    Registra inspeção de retorno e evidência de intervenção (RF-14).
+    Tipos permitidos:
+    - dano_persistente: dano continua presente na nova inspeção;
+    - reparo_confirmado: evidência de obra de reparo executada (atualiza status para 'resolvida');
+    - ausencia_observacao: passagem pelo local sem nova detecção (não assume reparo).
+    """
+    tipos_validos = ["dano_persistente", "reparo_confirmado", "ausencia_observacao"]
+    if payload.tipo not in tipos_validos:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Tipo de intervenção inválido. Valores aceitos: {', '.join(tipos_validos)}"
+        )
+
+    occ = db.query(models.Ocorrencia).filter(models.Ocorrencia.id == id).first()
+    if not occ:
+        raise HTTPException(status_code=404, detail="Ocorrência não encontrada")
+
+    data_inspecao = payload.data_inspecao or datetime.now(timezone.utc)
+
+    intervencao = models.Intervencao(
+        ocorrencia_id=occ.id,
+        tipo=payload.tipo,
+        descricao=payload.descricao,
+        autor=payload.autor,
+        data_inspecao=data_inspecao,
+        evidencia_foto_uri=payload.evidencia_foto_uri
+    )
+    db.add(intervencao)
+
+    # Regra de negócio estrita RF-14:
+    # Apenas 'reparo_confirmado' resolve a ocorrência.
+    # 'ausencia_observacao' NÃO assume reparo porque uma nova foto não detectou o defeito.
+    status_anterior = occ.status
+    if payload.tipo == "reparo_confirmado":
+        occ.status = "resolvida"
+    elif payload.tipo == "dano_persistente":
+        occ.status = "confirmada"
+
+    occ.versao += 1
+    occ.atualizado_em = datetime.now(timezone.utc)
+
+    # Trilha de auditoria
+    revisao = models.Revisao(
+        ocorrencia_id=occ.id,
+        autor=payload.autor,
+        decisao=f"reinspecao_{payload.tipo}",
+        status_anterior=status_anterior,
+        status_novo=occ.status,
+        motivo=f"Inspeção de retorno registrada: {payload.tipo}. {payload.descricao}"
+    )
+    db.add(revisao)
+    db.commit()
+    db.refresh(intervencao)
+    return intervencao
+
+# --- 12. Ordens de Serviço Municipais (RF-20) ---
+@router.post("/ocorrencias/{id}/ordens-servico", response_model=OrdemServicoResponse)
+def vincular_ordem_servico(id: str, payload: OrdemServicoCreate, db: Session = Depends(get_db)):
+    """
+    Vincula uma Ordem de Serviço (OS) municipal à ocorrência (RF-20).
+    Permite rastrear o atendimento sem gerar manutenção física automaticamente.
+    """
+    occ = db.query(models.Ocorrencia).filter(models.Ocorrencia.id == id).first()
+    if not occ:
+        raise HTTPException(status_code=404, detail="Ocorrência não encontrada")
+
+    os_model = models.OrdemServico(
+        ocorrencia_id=occ.id,
+        numero_os=payload.numero_os,
+        orgao_responsavel=payload.orgao_responsavel or "Secretaria de Obras e Infraestrutura Urbana",
+        status_os=payload.status_os or "aberta",
+        observacoes=payload.observacoes
+    )
+    db.add(os_model)
+    db.commit()
+    db.refresh(os_model)
+    return os_model
+
+@router.get("/ordens-servico", response_model=List[OrdemServicoResponse])
+def listar_ordens_servico(db: Session = Depends(get_db)):
+    return db.query(models.OrdemServico).all()
+
+# --- 13. Linha do Tempo e Histórico Completo de Auditoria (RF-08, RF-14, RF-20) ---
+@router.get("/ocorrencias/{id}/historico", response_model=HistoricoOcorrenciaResponse)
+def obter_historico_ocorrencia(id: str, db: Session = Depends(get_db)):
+    """
+    Retorna a linha do tempo completa e auditável de uma ocorrência:
+    detecções originais de visão computacional, histórico de revisões técnicas,
+    intervenções de re-inspeção em campo e ordens de serviço vinculadas.
+    """
+    occ = db.query(models.Ocorrencia).filter(models.Ocorrencia.id == id).first()
+    if not occ:
+        raise HTTPException(status_code=404, detail="Ocorrência não encontrada")
+
+    return HistoricoOcorrenciaResponse(
+        ocorrencia_id=occ.id,
+        classe=occ.classe,
+        status=occ.status,
+        latitude=occ.latitude,
+        longitude=occ.longitude,
+        via_nome=occ.via_nome,
+        bairro_nome=occ.bairro_nome,
+        deteccoes=occ.deteccoes,
+        revisoes=occ.revisoes,
+        intervencoes=occ.intervencoes,
+        ordens_servico=occ.ordens_servico
+    )
+
+# --- 14. Ingestão e Processamento de Vídeo com Amostragem (RF-07) ---
+@router.post("/lotes/{id}/video")
+def upload_processar_video_lote(
+    id: str,
+    video: UploadFile = File(...),
+    taxa_amostragem_segundos: float = Form(1.0),
+    trilha_gps_csv: Optional[UploadFile] = File(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Ingestão e amostragem temporal de arquivo de vídeo MP4 (RF-07).
+    Amostra quadros em taxa temporal configurável (default 1 qps), sincroniza
+    com GPS (se fornecido) e adiciona os quadros ao lote como mídias auditáveis.
+    """
+    lote = db.query(models.Lote).filter(models.Lote.id == id).first()
+    if not lote:
+        raise HTTPException(status_code=404, detail="Lote não encontrado")
+
+    # Salva o arquivo de vídeo temporariamente
+    ext = Path(video.filename).suffix or ".mp4"
+    video_save_path = UPLOAD_DIR / f"vid_{uuid.uuid4().hex[:12]}{ext}"
+    with open(video_save_path, "wb") as f:
+        shutil.copyfileobj(video.file, f)
+
+    # Interpreta trilha GPS de apoio se enviada
+    gps_track = []
+    if trilha_gps_csv:
+        try:
+            import csv
+            content = trilha_gps_csv.file.read().decode("utf-8")
+            reader = csv.DictReader(io.StringIO(content))
+            for row in reader:
+                r_norm = {k.strip().lower(): v.strip() for k, v in row.items() if k and v}
+                sec = float(r_norm.get("tempo_sec") or r_norm.get("offset_sec") or 0.0)
+                lat = float(r_norm.get("latitude") or r_norm.get("lat") or 0.0)
+                lon = float(r_norm.get("longitude") or r_norm.get("lon") or 0.0)
+                gps_track.append({"offset_sec": sec, "latitude": lat, "longitude": lon})
+            gps_track.sort(key=lambda x: x["offset_sec"])
+        except Exception:
+            pass
+
+    # Executa amostragem de quadros
+    frames_dir = UPLOAD_DIR / f"frames_{uuid.uuid4().hex[:8]}"
+    summary = extract_frames_from_video(
+        video_path=video_save_path,
+        output_dir=frames_dir,
+        sample_rate_sec=taxa_amostragem_segundos,
+        gps_track=gps_track
+    )
+
+    # Registra cada frame amostrado como mídia no lote
+    midias_adicionadas = []
+    for fr in summary["frames"]:
+        img_p = Path(fr["arquivo_path"])
+        sha = compute_sha256(img_p)
+        status_qual = "valida" if fr["latitude"] is not None else "valida_sem_gps"
+        
+        midia = models.Midia(
+            lote_id=lote.id,
+            uri_privada=str(img_p),
+            hash_sha256=sha,
+            formato="JPEG",
+            largura=fr["largura"],
+            altura=fr["altura"],
+            timestamp_utc=fr["timestamp_utc"],
+            latitude=fr["latitude"],
+            longitude=fr["longitude"],
+            fonte_gps="video_sincronizado" if fr["latitude"] is not None else "sem_gps",
+            status_qualidade=status_qual
+        )
+        db.add(midia)
+        lote.total_imagens += 1
+        lote.total_validas += 1
+        midias_adicionadas.append(midia.id)
+
+    lote.status = "pronto"
+    db.commit()
+
+    return {
+        "lote_id": lote.id,
+        "video": video.filename,
+        "duracao_segundos": summary["duracao_segundos"],
+        "taxa_amostragem_segundos": summary["taxa_amostragem_segundos"],
+        "quadros_amostrados": summary["quadros_amostrados"],
+        "midias_criadas": len(midias_adicionadas)
+    }

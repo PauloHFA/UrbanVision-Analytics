@@ -208,3 +208,60 @@ class ParametrosResponse(BaseModel):
     autor: str
     justificativa: str
     criado_em: datetime
+
+
+# --- Histórico de Intervenções e Re-inspeções (RF-14) ---
+class IntervencaoCreate(BaseModel):
+    tipo: str = Field(..., description="dano_persistente, reparo_confirmado ou ausencia_observacao")
+    descricao: str
+    autor: str
+    data_inspecao: Optional[datetime] = None
+    evidencia_foto_uri: Optional[str] = None
+
+class IntervencaoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    ocorrencia_id: str
+    tipo: str
+    descricao: str
+    autor: str
+    data_inspecao: datetime
+    evidencia_foto_uri: Optional[str] = None
+    criado_em: datetime
+
+# --- Integrações com Ordens de Serviço Municipais (RF-20) ---
+class OrdemServicoCreate(BaseModel):
+    numero_os: str
+    orgao_responsavel: Optional[str] = "Secretaria de Obras e Infraestrutura Urbana"
+    status_os: Optional[str] = "aberta"
+    observacoes: Optional[str] = None
+
+class OrdemServicoResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    ocorrencia_id: str
+    numero_os: str
+    orgao_responsavel: str
+    status_os: str
+    data_abertura: datetime
+    data_conclusao: Optional[datetime] = None
+    observacoes: Optional[str] = None
+    criado_em: datetime
+
+# --- Linha do Tempo e Histórico Completo da Ocorrência (RF-14) ---
+class HistoricoOcorrenciaResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    ocorrencia_id: str
+    classe: str
+    status: str
+    latitude: float
+    longitude: float
+    via_nome: str
+    bairro_nome: str
+    deteccoes: List[DeteccaoItem] = []
+    revisoes: List[RevisaoHistorico] = []
+    intervencoes: List[IntervencaoResponse] = []
+    ordens_servico: List[OrdemServicoResponse] = []
