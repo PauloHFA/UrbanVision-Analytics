@@ -1,0 +1,13 @@
+__pycache__/
+*.py[oc]
+.pytest_cache/
+.git/
+.gitignore
+.venv/
+data/*.db
+data/uploads/*
+data/crops/*
+data/reports/*
+!data/uploads/.gitkeep
+!data/crops/.gitkeep
+!data/reports/.gitkeep

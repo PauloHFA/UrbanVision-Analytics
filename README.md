@@ -57,10 +57,24 @@ uv run python sample_data/seed_pilot.py
 uv run uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
+### 5. Execução em Produção com Docker e PostgreSQL/PostGIS (RNF-09)
+Para subir o ambiente completo com banco de dados espacial corporativo PostgreSQL 16 + PostGIS:
+
+```bash
+docker compose up -d --build
+```
+
+O compose inicializa:
+- **`urbanvision_db`**: Contêiner oficial PostGIS com healthcheck ativo e extensão espacial configurada.
+- **`urbanvision_web`**: Aplicação FastAPI containerizada com health check em `/health`.
+- Volumes mapeados para persistência em `./data/uploads`, `./data/crops`, `./data/reports` e `pgdata`.
+
 Acesse o sistema no navegador:
 - **Interface Operacional / Dashboard**: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
 - **Documentação Swagger OpenAPI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - **Documentação ReDoc**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
+
+
 
 ---
 

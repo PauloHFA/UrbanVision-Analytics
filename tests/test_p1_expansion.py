@@ -186,3 +186,4 @@ def test_rf07_video_frame_sampling(tmp_path):
     assert Path(f2["arquivo_path"]).exists()
     assert f1["latitude"] == -23.5500
     assert f2["latitude"] == -23.5510  # Interpolação no 1.0 segundo
+

@@ -15,7 +15,7 @@ class Settings(BaseModel):
     PROJECT_NAME: str = "UrbanVision Analytics"
     VERSION: str = "1.0.0"
     API_V1_PREFIX: str = "/v1"
-    DATABASE_URL: str = f"sqlite:///{DATA_DIR / 'urbanvision.db'}"
+    DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{DATA_DIR / 'urbanvision.db'}")
     
     # Parâmetros de calibração e negócio (Seção 08 do PDF)
     DEFAULT_S_REF: float = 40.0

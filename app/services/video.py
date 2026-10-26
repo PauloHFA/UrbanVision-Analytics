@@ -110,3 +110,4 @@ def extract_frames_from_video(
         "quadros_amostrados": len(extracted),
         "frames": extracted
     }
+
