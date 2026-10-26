@@ -125,14 +125,60 @@ def check_image_quality(image_path: Path, metadata: Dict[str, Any]) -> Tuple[str
     except Exception as e:
         return "descarte_corrompida", f"Falha ao ler arquivo de imagem: {str(e)}"
     
-    # Validação de Coordenadas (RN-01, RN-02, RN-07)
+    # Validação de Coordenadas (RN-01, RN-02, RN-07, RF-03)
     lat = metadata.get("latitude")
     lon = metadata.get("longitude")
     if lat is None or lon is None:
-        return "descarte_sem_gps", "Ausência de coordenadas GPS"
+        return "valida_sem_gps", "Ausência de coordenadas GPS (permitida apenas inferência visual)"
     
     if not (-90.0 <= lat <= 90.0) or not (-180.0 <= lon <= 180.0) or (abs(lat) < 0.0001 and abs(lon) < 0.0001):
         return "descarte_gps_invalido", f"Coordenadas GPS fora dos limites ou nulas ({lat}, {lon})"
     
     return "valida", None
 
+
+
+def parse_manifest_csv(manifest_content: str) -> Dict[str, Dict[str, Any]]:
+    """
+    Interpreta arquivo de manifesto CSV de apoio georreferenciado (RF-02, RF-03).
+    Campos suportados: media_id/filename, timestamp, latitude/lat, longitude/lon, precisao/accuracy.
+    """
+    import csv
+    import io
+    manifest_map = {}
+    reader = csv.DictReader(io.StringIO(manifest_content))
+    for row in reader:
+        # Normaliza chaves
+        row_norm = {k.strip().lower(): v.strip() for k, v in row.items() if k and v}
+        key = row_norm.get("media_id") or row_norm.get("filename") or row_norm.get("arquivo")
+        if not key:
+            continue
+
+        lat_val = row_norm.get("latitude") or row_norm.get("lat")
+        lon_val = row_norm.get("longitude") or row_norm.get("lon")
+        prec_val = row_norm.get("precisao") or row_norm.get("accuracy")
+        dt_val = row_norm.get("timestamp") or row_norm.get("data")
+
+        try:
+            lat = float(lat_val) if lat_val else None
+            lon = float(lon_val) if lon_val else None
+            prec = float(prec_val) if prec_val else None
+        except ValueError:
+            continue
+
+        dt = None
+        if dt_val:
+            try:
+                dt = datetime.fromisoformat(dt_val.replace("Z", "+00:00"))
+            except Exception:
+                pass
+
+        manifest_map[key] = {
+            "latitude": lat,
+            "longitude": lon,
+            "precisao_gps": prec,
+            "timestamp_utc": dt,
+            "fuso_original": "UTC"
+        }
+
+    return manifest_map

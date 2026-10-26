@@ -150,3 +150,61 @@ class RelatorioResponse(BaseModel):
     hash_pdf: str
     texto_conclusao: Optional[str] = None
 
+
+
+# --- Unir e Separar Ocorrências (RF-09) ---
+class OcorrenciasUnirRequest(BaseModel):
+    ocorrencias_ids: List[str]
+    revisor: str
+    motivo: str
+
+class OcorrenciaSepararRequest(BaseModel):
+    revisor: str
+    motivo: str
+
+# --- Modelos de IA ---
+class ModeloCreate(BaseModel):
+    nome: str
+    versao: str
+    hash_pesos: str
+    dataset_referencia: Optional[str] = "RDD2022"
+    metricas: Optional[Dict[str, Any]] = None
+    status: Optional[str] = "avaliado"
+
+class ModeloResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    nome: str
+    versao: str
+    hash_pesos: str
+    dataset_referencia: str
+    metricas_json: str
+    status: str
+    criado_em: datetime
+
+# --- Administração de Parâmetros (RF-19) ---
+class ParametrosCreate(BaseModel):
+    versao: str
+    s_ref: Optional[float] = 40.0
+    min_cobertura_pct: Optional[float] = 60.0
+    min_l_obs_km: Optional[float] = 1.0
+    raio_agrupamento_m: Optional[float] = 10.0
+    pesos_classes: Optional[Dict[str, float]] = None
+    autor: str
+    justificativa: str
+
+class ParametrosResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    versao: str
+    s_ref: float
+    min_cobertura_pct: float
+    min_l_obs_km: float
+    raio_agrupamento_m: float
+    pesos_classes_json: str
+    ativo: bool
+    autor: str
+    justificativa: str
+    criado_em: datetime

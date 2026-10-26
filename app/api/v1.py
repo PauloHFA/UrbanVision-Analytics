@@ -16,10 +16,15 @@ from app.schemas.schemas import (
     LoteCreate, LoteResponse,
     ExecucaoCreate, ExecucaoResponse,
     OcorrenciaResponse, OcorrenciaUpdate,
+    OcorrenciasUnirRequest, OcorrenciaSepararRequest,
+    ModeloCreate, ModeloResponse,
+    ParametrosCreate, ParametrosResponse,
     IndicadorResponse,
     RelatorioCreate, RelatorioResponse
 )
-from app.services.ingestion import compute_sha256, extract_exif_metadata, check_image_quality
+from app.services.ingestion import (
+    compute_sha256, extract_exif_metadata, check_image_quality, parse_manifest_csv
+)
 from app.services.detector import DamageDetector
 from app.services.deduplication import cluster_detections_into_occurrences
 from app.services.spatial import match_point_to_territory, calculate_unique_observed_length_km
@@ -71,11 +76,21 @@ def criar_lote(lote_in: LoteCreate, db: Session = Depends(get_db)):
 def upload_imagens_lote(
     id: str,
     arquivos: List[UploadFile] = File(...),
+    manifesto: Optional[UploadFile] = File(None),
     db: Session = Depends(get_db)
 ):
     lote = db.query(models.Lote).filter(models.Lote.id == id).first()
     if not lote:
         raise HTTPException(status_code=404, detail="Lote não encontrado")
+
+    # Lê manifesto CSV opcional (RF-02, RF-03)
+    manifest_map = {}
+    if manifesto:
+        try:
+            content = manifesto.file.read().decode("utf-8")
+            manifest_map = parse_manifest_csv(content)
+        except Exception:
+            pass
 
     resultados = []
     lote.status = "validando"
@@ -103,6 +118,18 @@ def upload_imagens_lote(
 
         # Extração de Metadados EXIF e Qualidade
         metadata = extract_exif_metadata(save_path)
+        fonte_gps = "exif"
+
+        # Complementa com dados do manifesto CSV se ausente no EXIF
+        if (metadata.get("latitude") is None or metadata.get("longitude") is None) and arq.filename in manifest_map:
+            m_data = manifest_map[arq.filename]
+            metadata["latitude"] = m_data.get("latitude")
+            metadata["longitude"] = m_data.get("longitude")
+            metadata["precisao_gps"] = m_data.get("precisao_gps")
+            if m_data.get("timestamp_utc"):
+                metadata["timestamp_utc"] = m_data.get("timestamp_utc")
+            fonte_gps = "manifesto_csv"
+
         status_qualidade, motivo = check_image_quality(save_path, metadata)
 
         try:
@@ -126,12 +153,13 @@ def upload_imagens_lote(
             longitude=metadata["longitude"],
             altitude=metadata["altitude"],
             precisao_gps=metadata["precisao_gps"],
+            fonte_gps=fonte_gps,
             status_qualidade=status_qualidade,
             motivo_descarte=motivo
         )
         db.add(midia)
         lote.total_imagens += 1
-        if status_qualidade == "valida":
+        if status_qualidade in ["valida", "valida_sem_gps"]:
             lote.total_validas += 1
         else:
             lote.total_rejeitadas += 1
@@ -140,6 +168,7 @@ def upload_imagens_lote(
             "arquivo": arq.filename,
             "status": status_qualidade,
             "motivo": motivo,
+            "fonte_gps": fonte_gps,
             "hash": sha256,
             "gps": {"lat": metadata["latitude"], "lon": metadata["longitude"]}
         })
@@ -178,10 +207,14 @@ def iniciar_execucao_inferencia(id: str, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(execucao)
 
+    # Carrega parâmetros ativos versionados (RF-19)
+    cfg_param = db.query(models.ConfiguracaoParametros).filter(models.ConfiguracaoParametros.ativo == True).first()
+    raio_agrupamento = cfg_param.raio_agrupamento_m if cfg_param else settings.DEDUPLICATION_RADIUS_METERS
+
     detector = DamageDetector()
     midias_validas = db.query(models.Midia).filter(
         models.Midia.lote_id == lote.id,
-        models.Midia.status_qualidade == "valida"
+        models.Midia.status_qualidade.in_(["valida", "valida_sem_gps"])
     ).all()
 
     deteccoes_geo = []
@@ -204,22 +237,41 @@ def iniciar_execucao_inferencia(id: str, db: Session = Depends(get_db)):
             db.add(det_model)
             db.flush()
 
-            deteccoes_geo.append({
-                "deteccao_id": det_model.id,
-                "classe": d["classe"],
-                "confianca": d["confianca"],
-                "latitude": m.latitude,
-                "longitude": m.longitude,
-                "midia_id": m.id,
-                "recorte_uri": d["recorte_uri"]
-            })
+            # RF-03: se possui GPS, entra na malha espacial. Se não, fica em fila visual sem posição.
+            if m.latitude is not None and m.longitude is not None:
+                deteccoes_geo.append({
+                    "deteccao_id": det_model.id,
+                    "classe": d["classe"],
+                    "confianca": d["confianca"],
+                    "latitude": m.latitude,
+                    "longitude": m.longitude,
+                    "midia_id": m.id,
+                    "recorte_uri": d["recorte_uri"]
+                })
+            else:
+                occ_pendente = models.Ocorrencia(
+                    campanha_id=lote.campanha_id,
+                    classe=d["classe"],
+                    confianca=d["confianca"],
+                    latitude=0.0,
+                    longitude=0.0,
+                    incerteza_metros=0.0,
+                    status="candidata_sem_gps",
+                    via_nome="Pendente de Correção GPS",
+                    bairro_nome="Pendente de Correção GPS",
+                    versao=1
+                )
+                db.add(occ_pendente)
+                db.flush()
+                occ_pendente.deteccoes.append(det_model)
+
         execucao.total_processado = i + 1
         execucao.progresso_pct = round(((i + 1) / total) * 100.0, 1) if total > 0 else 100.0
 
     execucao.total_deteccoes = len(deteccoes_geo)
 
     # Agrupamento e Deduplicação Espaço-Temporal em Ocorrências Únicas (RF-09, RN-06)
-    clusters = cluster_detections_into_occurrences(deteccoes_geo, radius_meters=settings.DEDUPLICATION_RADIUS_METERS)
+    clusters = cluster_detections_into_occurrences(deteccoes_geo, radius_meters=raio_agrupamento)
     
     # Carrega limites territoriais para associação (RF-10)
     bairros_db = db.query(models.Bairro).all()
@@ -553,3 +605,225 @@ def exportar_geojson(campanha_id: str, db: Session = Depends(get_db)):
     geojson_data = export_occurrences_geojson(data)
     return geojson_data
 
+
+
+# --- 7. Unir e Separar Agrupamentos Manualmente (RF-09) ---
+@router.post("/ocorrencias/unir", response_model=OcorrenciaResponse)
+def unir_ocorrencias(payload: OcorrenciasUnirRequest, db: Session = Depends(get_db)):
+    """
+    Agrupamento manual de ocorrências (RF-09):
+    Une múltiplas ocorrências em uma única, transferindo suas detecções e recalculando centroide.
+    """
+    if len(payload.ocorrencias_ids) < 2:
+        raise HTTPException(status_code=400, detail="Necessário pelo menos duas ocorrências para unir")
+    
+    occs = db.query(models.Ocorrencia).filter(models.Ocorrencia.id.in_(payload.ocorrencias_ids)).all()
+    if len(occs) != len(payload.ocorrencias_ids):
+        raise HTTPException(status_code=404, detail="Uma ou mais ocorrências não foram encontradas")
+
+    occs_map = {o.id: o for o in occs}
+    principal = occs_map[payload.ocorrencias_ids[0]]
+    outras = [occs_map[oid] for oid in payload.ocorrencias_ids[1:]]
+
+    # Transfere detecções das outras para a principal
+    todas_dets = list(principal.deteccoes)
+    for o in outras:
+        for d in o.deteccoes:
+            if d not in todas_dets:
+                principal.deteccoes.append(d)
+                todas_dets.append(d)
+
+    # Recalcula centróide espacial
+    lats = [o.latitude for o in occs if o.latitude != 0.0]
+    lons = [o.longitude for o in occs if o.longitude != 0.0]
+    if lats and lons:
+        principal.latitude = round(sum(lats) / len(lats), 6)
+        principal.longitude = round(sum(lons) / len(lons), 6)
+
+    principal.versao += 1
+    principal.status = "confirmada"
+    principal.atualizado_em = datetime.now(timezone.utc)
+
+    # Registra trilha de auditoria
+    revisao = models.Revisao(
+        ocorrencia_id=principal.id,
+        autor=payload.revisor,
+        decisao="uniao_manual",
+        motivo=f"União manual com as ocorrências: {', '.join(o.id for o in outras)}. Motivo: {payload.motivo}",
+        status_anterior=principal.status,
+        status_novo="confirmada"
+    )
+    db.add(revisao)
+
+    # Exclui as ocorrências que foram incorporadas
+    for o in outras:
+        db.delete(o)
+
+    db.commit()
+    db.refresh(principal)
+    return principal
+
+@router.post("/ocorrencias/{id}/separar", response_model=List[OcorrenciaResponse])
+def separar_ocorrencia(id: str, payload: OcorrenciaSepararRequest, db: Session = Depends(get_db)):
+    """
+    Desmembramento manual de ocorrência agrupada (RF-09):
+    Separa uma ocorrência composta por múltiplas detecções em ocorrências individuais originais.
+    """
+    occ = db.query(models.Ocorrencia).filter(models.Ocorrencia.id == id).first()
+    if not occ:
+        raise HTTPException(status_code=404, detail="Ocorrência não encontrada")
+
+    if len(occ.deteccoes) <= 1:
+        raise HTTPException(status_code=400, detail="Esta ocorrência possui apenas uma detecção associada e não pode ser desmembrada")
+
+    novas_occs = [occ]
+    dets = list(occ.deteccoes)
+    
+    # Mantém a primeira na ocorrência original
+    occ.deteccoes = [dets[0]]
+    occ.versao += 1
+    occ.atualizado_em = datetime.now(timezone.utc)
+    
+    # Cria ocorrências individuais para as demais detecções
+    for d in dets[1:]:
+        midia = d.midia
+        lat = midia.latitude if midia and midia.latitude else occ.latitude
+        lon = midia.longitude if midia and midia.longitude else occ.longitude
+        
+        nova = models.Ocorrencia(
+            campanha_id=occ.campanha_id,
+            classe=d.classe,
+            confianca=d.confianca,
+            latitude=lat,
+            longitude=lon,
+            incerteza_metros=occ.incerteza_metros,
+            status="candidata",
+            via_nome=occ.via_nome,
+            bairro_nome=occ.bairro_nome,
+            versao=1
+        )
+        db.add(nova)
+        db.flush()
+        nova.deteccoes.append(d)
+        novas_occs.append(nova)
+
+    revisao = models.Revisao(
+        ocorrencia_id=occ.id,
+        autor=payload.revisor,
+        decisao="separacao_manual",
+        motivo=f"Desmembramento manual em {len(dets)} ocorrências individuais. Motivo: {payload.motivo}"
+    )
+    db.add(revisao)
+    db.commit()
+    return novas_occs
+
+# --- 8. Território e Camadas Geoespaciais (RF-11) ---
+@router.get("/territorio/bairros")
+def obter_territorio_bairros(db: Session = Depends(get_db)):
+    bairros = db.query(models.Bairro).all()
+    features = []
+    for b in bairros:
+        try:
+            geom = json.loads(b.geometria_geojson)
+            features.append({
+                "type": "Feature",
+                "properties": {
+                    "id": b.id,
+                    "nome": b.nome,
+                    "municipio": b.municipio,
+                    "malha_elegivel_km": b.malha_elegivel_km
+                },
+                "geometry": geom
+            })
+        except Exception:
+            pass
+    return {"type": "FeatureCollection", "features": features}
+
+@router.get("/territorio/vias")
+def obter_territorio_vias(db: Session = Depends(get_db)):
+    vias = db.query(models.ViaTrecho).all()
+    features = []
+    for v in vias:
+        try:
+            geom = json.loads(v.geometria_geojson)
+            features.append({
+                "type": "Feature",
+                "properties": {
+                    "id": v.id,
+                    "nome_via": v.nome_via,
+                    "bairro_nome": v.bairro_nome,
+                    "extensao_km": v.extensao_km
+                },
+                "geometry": geom
+            })
+        except Exception:
+            pass
+    return {"type": "FeatureCollection", "features": features}
+
+# --- 9. Modelos de IA (Seção 06 e Seção 10) ---
+@router.get("/modelos", response_model=List[ModeloResponse])
+def listar_modelos(db: Session = Depends(get_db)):
+    return db.query(models.Modelo).all()
+
+@router.post("/modelos", response_model=ModeloResponse)
+def registrar_modelo(payload: ModeloCreate, db: Session = Depends(get_db)):
+    modelo = models.Modelo(
+        nome=payload.nome,
+        versao=payload.versao,
+        hash_pesos=payload.hash_pesos,
+        dataset_referencia=payload.dataset_referencia or "RDD2022",
+        metricas_json=json.dumps(payload.metricas or {}),
+        status=payload.status or "avaliado"
+    )
+    db.add(modelo)
+    db.commit()
+    db.refresh(modelo)
+    return modelo
+
+# --- 10. Administração e Governança de Parâmetros (RF-19) ---
+@router.get("/administracao/parametros", response_model=List[ParametrosResponse])
+def listar_parametros(db: Session = Depends(get_db)):
+    params = db.query(models.ConfiguracaoParametros).order_by(models.ConfiguracaoParametros.criado_em.desc()).all()
+    if not params:
+        # Inicializa versão v1.0 se não houver
+        p_init = models.ConfiguracaoParametros(
+            versao="v1.0-piloto",
+            s_ref=settings.DEFAULT_S_REF,
+            min_cobertura_pct=settings.MIN_COVERAGE_PCT,
+            min_l_obs_km=settings.MIN_L_OBS_KM,
+            raio_agrupamento_m=settings.DEDUPLICATION_RADIUS_METERS,
+            pesos_classes_json=json.dumps({"D00": 1.0, "D10": 1.0, "D20": 1.0, "D40": 1.0}),
+            ativo=True,
+            autor="Sistema",
+            justificativa="Parâmetros iniciais de referência homologados para o piloto"
+        )
+        db.add(p_init)
+        db.commit()
+        db.refresh(p_init)
+        params = [p_init]
+    return params
+
+@router.post("/administracao/parametros", response_model=ParametrosResponse)
+def criar_configuracao_parametros(payload: ParametrosCreate, db: Session = Depends(get_db)):
+    existente = db.query(models.ConfiguracaoParametros).filter(models.ConfiguracaoParametros.versao == payload.versao).first()
+    if existente:
+        raise HTTPException(status_code=400, detail=f"A versão de parâmetros '{payload.versao}' já existe.")
+
+    # Desativa versão anterior sem apagar histórico (RF-19)
+    db.query(models.ConfiguracaoParametros).update({"ativo": False})
+    
+    cfg = models.ConfiguracaoParametros(
+        versao=payload.versao,
+        s_ref=payload.s_ref if payload.s_ref is not None else 40.0,
+        min_cobertura_pct=payload.min_cobertura_pct if payload.min_cobertura_pct is not None else 60.0,
+        min_l_obs_km=payload.min_l_obs_km if payload.min_l_obs_km is not None else 1.0,
+        raio_agrupamento_m=payload.raio_agrupamento_m if payload.raio_agrupamento_m is not None else 10.0,
+        pesos_classes_json=json.dumps(payload.pesos_classes or {"D00": 1.0, "D10": 1.0, "D20": 1.0, "D40": 1.0}),
+        ativo=True,
+        autor=payload.autor,
+        justificativa=payload.justificativa
+    )
+    db.add(cfg)
+    db.commit()
+    db.refresh(cfg)
+    return cfg

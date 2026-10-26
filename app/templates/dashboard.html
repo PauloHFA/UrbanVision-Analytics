@@ -9,6 +9,7 @@
     <!-- Leaflet CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .sidebar-active { background-color: #1E293B; border-left: 4px solid #38BDF8; }
@@ -48,36 +49,42 @@
     </header>
 
     <div class="flex flex-1">
-        <!-- Sidebar Menu (Seção 04 / Componentes de Tela) -->
+        <!-- Sidebar Menu com os 9 itens propostos na Seção 04 -->
         <aside class="w-64 bg-slate-950 border-r border-slate-800 flex flex-col justify-between py-4">
             <nav class="space-y-1 px-3">
-                <button onclick="switchTab('overview')" id="tab-btn-overview" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-900 transition sidebar-active">
-                    <i class="fa-solid fa-chart-pie w-5 text-sky-400"></i> Visão Geral
+                <button onclick="switchTab('overview')" id="tab-btn-overview" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-900 transition sidebar-active">
+                    <i class="fa-solid fa-chart-pie w-4 text-sky-400"></i> Visão Geral
                 </button>
-                <button onclick="switchTab('campaigns')" id="tab-btn-campaigns" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
-                    <i class="fa-solid fa-layer-group w-5 text-indigo-400"></i> Campanhas & Lotes
+                <button onclick="switchTab('campaigns')" id="tab-btn-campaigns" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
+                    <i class="fa-solid fa-layer-group w-4 text-indigo-400"></i> Campanhas & Lotes
                 </button>
-                <button onclick="switchTab('imports')" id="tab-btn-imports" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
-                    <i class="fa-solid fa-cloud-arrow-up w-5 text-emerald-400"></i> Importações
+                <button onclick="switchTab('imports')" id="tab-btn-imports" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
+                    <i class="fa-solid fa-cloud-arrow-up w-4 text-emerald-400"></i> Importações
                 </button>
-                <button onclick="switchTab('review')" id="tab-btn-review" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
-                    <i class="fa-solid fa-magnifying-glass-chart w-5 text-amber-400"></i> Revisão de Evidências
+                <button onclick="switchTab('review')" id="tab-btn-review" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
+                    <i class="fa-solid fa-magnifying-glass-chart w-4 text-amber-400"></i> Revisão de Evidências
                 </button>
-                <button onclick="switchTab('mapTab')" id="tab-btn-mapTab" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
-                    <i class="fa-solid fa-map-location-dot w-5 text-blue-400"></i> Mapa Operacional
+                <button onclick="switchTab('mapTab')" id="tab-btn-mapTab" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
+                    <i class="fa-solid fa-map-location-dot w-4 text-blue-400"></i> Mapa Operacional
                 </button>
-                <button onclick="switchTab('indicators')" id="tab-btn-indicators" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
-                    <i class="fa-solid fa-calculator w-5 text-purple-400"></i> Indicadores & IDU
+                <button onclick="switchTab('indicators')" id="tab-btn-indicators" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
+                    <i class="fa-solid fa-calculator w-4 text-purple-400"></i> Indicadores & IDU
                 </button>
-                <button onclick="switchTab('reports')" id="tab-btn-reports" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
-                    <i class="fa-solid fa-file-pdf w-5 text-rose-400"></i> Relatórios & Exportação
+                <button onclick="switchTab('reports')" id="tab-btn-reports" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
+                    <i class="fa-solid fa-file-pdf w-4 text-rose-400"></i> Relatórios & Exportação
+                </button>
+                <button onclick="switchTab('models')" id="tab-btn-models" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
+                    <i class="fa-solid fa-brain w-4 text-teal-400"></i> Modelos de IA
+                </button>
+                <button onclick="switchTab('admin')" id="tab-btn-admin" class="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-xs font-medium text-slate-400 hover:bg-slate-900 hover:text-slate-200 transition">
+                    <i class="fa-solid fa-sliders w-4 text-orange-400"></i> Administração
                 </button>
             </nav>
 
             <div class="px-4 py-3 border-t border-slate-800/80 text-[11px] text-slate-500 space-y-1">
                 <div>Taxonomia: <span class="text-slate-400">RDD2022 (D00-D40)</span></div>
                 <div>Método Espacial: <span class="text-slate-400">Geodésico WGS84</span></div>
-                <div>IDU Calibrado: <span class="text-slate-400">Sref = 40.0</span></div>
+                <div>IDU Calibrado: <span id="sidebarSref" class="text-slate-400">Sref = 40.0</span></div>
             </div>
         </aside>
 
@@ -124,7 +131,6 @@
                     </div>
                 </div>
 
-                <!-- Painel Informativo de Taxonomia e Estado do MVP -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div class="lg:col-span-2 bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-4">
                         <h2 class="text-base font-semibold text-white flex items-center gap-2">
@@ -156,9 +162,9 @@
                         <div class="pt-2">
                             <h3 class="text-xs font-semibold text-slate-400 uppercase mb-2">Princípios do Sistema (Auditabilidade & Limites)</h3>
                             <ul class="text-xs text-slate-400 space-y-1.5 list-disc pl-4">
-                                <li>Posição geodésica WGS84 com cálculo exato de incerteza da captura;</li>
+                                <li>Posição geodésica WGS84 com registro de incerteza e fonte da captura;</li>
                                 <li>Sem extrapolação automática de custos, risco ou profundidade apenas por fotografia;</li>
-                                <li>Revisão técnica com versionamento otimista e trilha de auditoria para cada alteração.</li>
+                                <li>Revisão técnica com concorrência otimista (HTTP 409) e trilha de auditoria completa.</li>
                             </ul>
                         </div>
                     </div>
@@ -169,7 +175,7 @@
                                 <i class="fa-solid fa-play text-emerald-400"></i> Ações Rápidas de Piloto
                             </h2>
                             <p class="text-xs text-slate-400 mb-4">
-                                Para fins de validação e demonstração dos critérios de aceite (AT-01 a AT-08), inicialize os dados do território piloto com malhas e amostras.
+                                Carregue a malha territorial, os bairros de estudo, vias e amostras georreferenciadas para homologar o fluxo completo.
                             </p>
                         </div>
                         <div class="space-y-2">
@@ -177,7 +183,7 @@
                                 <i class="fa-solid fa-wand-magic-sparkles"></i> Carregar Dados do Piloto (Campanha + Malha + Lote)
                             </button>
                             <button onclick="switchTab('imports')" class="w-full py-2.5 px-4 bg-slate-800 hover:bg-slate-700 font-medium text-xs text-slate-200 rounded-lg transition border border-slate-700 flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-upload"></i> Enviar Novas Imagens
+                                <i class="fa-solid fa-upload"></i> Enviar Novas Imagens / Manifesto
                             </button>
                         </div>
                     </div>
@@ -191,9 +197,6 @@
                         <h2 class="text-lg font-bold text-white">Campanhas Territoriais</h2>
                         <p class="text-xs text-slate-400">Cadastro de municípios, períodos, responsáveis e malha viária (RF-01)</p>
                     </div>
-                    <button onclick="openNewCampaignModal()" class="px-4 py-2 bg-sky-600 hover:bg-sky-500 text-xs font-semibold rounded-lg text-white transition flex items-center gap-2">
-                        <i class="fa-solid fa-plus"></i> Nova Campanha
-                    </button>
                 </div>
 
                 <div class="bg-slate-950 rounded-xl border border-slate-800 overflow-hidden">
@@ -220,8 +223,8 @@
             <!-- TAB 3: IMPORTAÇÕES -->
             <section id="tab-imports" class="hidden space-y-6">
                 <div>
-                    <h2 class="text-lg font-bold text-white">Importação e Ingestão de Imagens</h2>
-                    <p class="text-xs text-slate-400">Validação de formato real, cálculo de SHA-256, EXIF GPS e qualidade de captura (RF-02 a RF-04)</p>
+                    <h2 class="text-lg font-bold text-white">Importação e Ingestão de Imagens e Trilhas</h2>
+                    <p class="text-xs text-slate-400">Validação de formato real, cálculo de SHA-256, EXIF GPS e suporte a manifesto CSV (RF-02 a RF-04)</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -229,12 +232,17 @@
                         <h3 class="text-sm font-semibold text-white">1. Enviar Lote de Imagens</h3>
                         <div>
                             <label class="block text-xs font-medium text-slate-400 mb-1">Selecionar Campanha</label>
-                            <select id="uploadCampaignSelect" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg p-2.5 text-slate-200 focus:outline-none focus:border-sky-500">
+                            <select id="uploadCampaignSelect" class="w-full bg-slate-900 border border-slate-800 text-xs rounded-lg p-2.5 text-slate-200">
                             </select>
                         </div>
                         <div>
                             <label class="block text-xs font-medium text-slate-400 mb-1">Arquivos JPEG / PNG</label>
                             <input type="file" id="imageFilesInput" multiple accept="image/jpeg,image/png" class="w-full text-xs text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 cursor-pointer">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-400 mb-1">Manifesto CSV Opcional (RF-03)</label>
+                            <input type="file" id="manifestFileInput" accept=".csv" class="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-slate-800 file:text-slate-300 cursor-pointer">
+                            <span class="text-[10px] text-slate-500">Campos: media_id, timestamp, latitude, longitude, precisao</span>
                         </div>
                         <button onclick="uploadImages()" id="btnUploadImages" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold rounded-lg text-white transition flex items-center justify-center gap-2">
                             <i class="fa-solid fa-cloud-arrow-up"></i> Iniciar Ingestão do Lote
@@ -252,13 +260,16 @@
 
             <!-- TAB 4: REVISÃO DE EVIDÊNCIAS -->
             <section id="tab-review" class="hidden space-y-6">
-                <div class="flex justify-between items-center">
+                <div class="flex justify-between items-center bg-slate-950 p-4 rounded-xl border border-slate-800">
                     <div>
-                        <h2 class="text-lg font-bold text-white">Fila de Revisão Técnica de Evidências</h2>
-                        <p class="text-xs text-slate-400">Validação humana de classe, localização e auditoria com concorrência otimista (RF-08, AT-07)</p>
+                        <h2 class="text-base font-bold text-white">Fila de Revisão Técnica de Evidências</h2>
+                        <p class="text-xs text-slate-400">Validação humana de classe, localização e auditoria (RF-08, RF-09)</p>
                     </div>
                     <div class="flex items-center gap-3">
-                        <select id="reviewStatusFilter" onchange="loadReviewOccurrences()" class="bg-slate-950 border border-slate-800 text-xs rounded-lg p-2 text-slate-200">
+                        <button onclick="unirOcorrenciasSelecionadas()" class="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-xs font-semibold rounded-lg text-white transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-object-group"></i> Unir Selecionadas (RF-09)
+                        </button>
+                        <select id="reviewStatusFilter" onchange="loadReviewOccurrences()" class="bg-slate-900 border border-slate-700 text-xs rounded-lg p-2 text-slate-200">
                             <option value="">Todos os status</option>
                             <option value="candidata" selected>Candidatas</option>
                             <option value="confirmada">Confirmadas</option>
@@ -276,15 +287,22 @@
             <section id="tab-mapTab" class="hidden space-y-4">
                 <div class="flex justify-between items-center">
                     <div>
-                        <h2 class="text-lg font-bold text-white">Mapa Operacional de Ocorrências e Degradação</h2>
-                        <p class="text-xs text-slate-400">Visualização geodésica em WGS84 com raio de incerteza e camadas territoriais (RF-11, RF-13)</p>
+                        <h2 class="text-base font-bold text-white">Mapa Operacional e Concentração de Degradação</h2>
+                        <p class="text-xs text-slate-400">Camadas GIS: bairros, malha viária, ocorrências pontuais e mapa de calor (RF-11, RF-13)</p>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs text-slate-400">Legenda:</span>
-                        <span class="text-[11px] px-2 py-0.5 rounded bg-sky-950 border border-sky-600 text-sky-400">D00 Long.</span>
-                        <span class="text-[11px] px-2 py-0.5 rounded bg-indigo-950 border border-indigo-600 text-indigo-400">D10 Trans.</span>
-                        <span class="text-[11px] px-2 py-0.5 rounded bg-amber-950 border border-amber-600 text-amber-400">D20 Jacaré</span>
-                        <span class="text-[11px] px-2 py-0.5 rounded bg-rose-950 border border-rose-600 text-rose-400">D40 Buraco</span>
+                    <div class="flex items-center gap-3 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800 text-xs">
+                        <label class="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+                            <input type="checkbox" id="chkLayerMarkers" checked onchange="toggleMapLayer('markers')"> Ocorrências
+                        </label>
+                        <label class="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+                            <input type="checkbox" id="chkLayerHeatmap" onchange="toggleMapLayer('heatmap')"> Mapa de Calor
+                        </label>
+                        <label class="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+                            <input type="checkbox" id="chkLayerBairros" checked onchange="toggleMapLayer('bairros')"> Bairros
+                        </label>
+                        <label class="flex items-center gap-1.5 text-slate-300 cursor-pointer">
+                            <input type="checkbox" id="chkLayerVias" checked onchange="toggleMapLayer('vias')"> Vias
+                        </label>
                     </div>
                 </div>
 
@@ -332,7 +350,7 @@
                     <div class="font-semibold text-slate-300">Regras de Elegibilidade & Classificação do IDU:</div>
                     <div class="text-slate-400 grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <div>• Elegibilidade: <span class="text-slate-200">Cobertura &ge; 60% e L_obs &ge; 1,0 km</span></div>
-                        <div>• Sref de Referência Congelado: <span class="text-slate-200">40,0 /km</span></div>
+                        <div>• Sref de Referência Congelado: <span id="iduSrefText" class="text-slate-200">40,0 /km</span></div>
                         <div>• Faixas: <span class="text-slate-200">[0,25) Baixa | [25,50) Moderada | [50,75) Alta | [75,100] Muito Alta</span></div>
                         <div>• Média Municipal: <span class="text-slate-200">Ponderada por soma(N) / soma(L_obs) dos territórios elegíveis</span></div>
                     </div>
@@ -379,6 +397,98 @@
                 </div>
             </section>
 
+            <!-- TAB 8: MODELOS DE IA (SEÇÃO 06 / RD-04 / RD-05) -->
+            <section id="tab-models" class="hidden space-y-6">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Registro e Governança de Modelos de IA</h2>
+                    <p class="text-xs text-slate-400">Rastreabilidade de versões de pesos, datasets, licenças e métricas de desempenho (RD-04, RD-05)</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
+                        <h3 class="text-sm font-semibold text-white">Cadastrar / Promover Modelo</h3>
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">Nome do Modelo</label>
+                            <input type="text" id="modelNameInput" value="YOLO11-RDD2022-PotholeCrack" class="w-full bg-slate-900 border border-slate-800 text-xs rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">Versão</label>
+                            <input type="text" id="modelVersionInput" value="v1.2-homologado" class="w-full bg-slate-900 border border-slate-800 text-xs rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">Hash SHA-256 dos Pesos</label>
+                            <input type="text" id="modelHashInput" value="e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" class="w-full bg-slate-900 border border-slate-800 text-xs rounded p-2 text-slate-200 font-mono">
+                        </div>
+                        <button onclick="registerModel()" class="w-full py-2 bg-teal-600 hover:bg-teal-500 text-xs font-semibold rounded text-white transition">
+                            <i class="fa-solid fa-plus"></i> Registrar Versão do Modelo
+                        </button>
+                    </div>
+
+                    <div class="md:col-span-2 bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
+                        <h3 class="text-sm font-semibold text-white">Modelos Registrados na Organização</h3>
+                        <div id="modelsListContainer" class="space-y-3">
+                            <!-- Lista de Modelos -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 9: ADMINISTRAÇÃO DE PARÂMETROS (RF-19) -->
+            <section id="tab-admin" class="hidden space-y-6">
+                <div>
+                    <h2 class="text-lg font-bold text-white">Administração e Governança de Parâmetros</h2>
+                    <p class="text-xs text-slate-400">Versionamento de limiares de agrupamento, cobertura e calibração de Sref (RF-19)</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
+                        <h3 class="text-sm font-semibold text-white">Criar Nova Versão de Parâmetros</h3>
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">Versão</label>
+                            <input type="text" id="paramVersionInput" value="v1.1-ajuste-severidade" class="w-full bg-slate-900 border border-slate-800 text-xs rounded p-2 text-slate-200">
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[11px] text-slate-400 mb-1">Sref (/km)</label>
+                                <input type="number" id="paramSrefInput" value="40.0" step="1.0" class="w-full bg-slate-900 border border-slate-800 text-xs rounded p-2 text-slate-200">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-slate-400 mb-1">Raio Agrup. (m)</label>
+                                <input type="number" id="paramRadiusInput" value="10.0" step="1.0" class="w-full bg-slate-900 border border-slate-800 text-xs rounded p-2 text-slate-200">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-[11px] text-slate-400 mb-1">Cob. Mínima (%)</label>
+                                <input type="number" id="paramMinCovInput" value="60.0" step="5.0" class="w-full bg-slate-900 border border-slate-800 text-xs rounded p-2 text-slate-200">
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-slate-400 mb-1">L_obs Mín. (km)</label>
+                                <input type="number" id="paramMinLobsInput" value="1.0" step="0.5" class="w-full bg-slate-900 border border-slate-800 text-xs rounded p-2 text-slate-200">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">Responsável / Autor</label>
+                            <input type="text" id="paramAuthorInput" value="Eng. Coordenador" class="w-full bg-slate-900 border border-slate-800 text-xs rounded p-2 text-slate-200">
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-slate-400 mb-1">Justificativa Técnica</label>
+                            <textarea id="paramJustifInput" rows="2" class="w-full bg-slate-900 border border-slate-800 text-xs rounded p-2 text-slate-200">Ajuste de tolerâncias homologadas no piloto</textarea>
+                        </div>
+                        <button onclick="createParamConfig()" class="w-full py-2 bg-orange-600 hover:bg-orange-500 text-xs font-semibold rounded text-white transition">
+                            <i class="fa-solid fa-save"></i> Salvar e Versionar Configuração
+                        </button>
+                    </div>
+
+                    <div class="md:col-span-2 bg-slate-950 p-5 rounded-xl border border-slate-800 space-y-3">
+                        <h3 class="text-sm font-semibold text-white">Histórico de Versões de Parâmetros</h3>
+                        <div id="paramHistoryList" class="space-y-3">
+                            <!-- Lista de Versões de Parâmetros -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
         </main>
     </div>
 
@@ -387,15 +497,20 @@
         let activeCampaign = null;
         let campaigns = [];
         let occurrences = [];
+        let selectedOccIds = new Set();
+
         let map = null;
         let mapMarkersLayer = null;
+        let mapHeatmapLayer = null;
+        let mapBairrosLayer = null;
+        let mapViasLayer = null;
 
         function updateClock() {
             document.getElementById('lastUpdateTime').innerText = new Date().toLocaleTimeString('pt-BR');
         }
 
         function switchTab(tabId) {
-            ['overview', 'campaigns', 'imports', 'review', 'mapTab', 'indicators', 'reports'].forEach(id => {
+            ['overview', 'campaigns', 'imports', 'review', 'mapTab', 'indicators', 'reports', 'models', 'admin'].forEach(id => {
                 const el = document.getElementById('tab-' + id);
                 const btn = document.getElementById('tab-btn-' + id);
                 if (id === tabId) {
@@ -416,6 +531,10 @@
                     initMapIfNeeded();
                     if (map) map.invalidateSize();
                 }, 100);
+            } else if (tabId === 'models') {
+                loadModels();
+            } else if (tabId === 'admin') {
+                loadParameters();
             }
         }
 
@@ -446,7 +565,7 @@
 
                     occurrences = await apiGet(`/ocorrencias?campanha_id=${activeCampaign.id}`);
                     renderOverview();
-                    renderMapMarkers();
+                    renderMapLayers();
                     loadReviewOccurrences();
                     loadIndicators();
                 } else {
@@ -516,23 +635,69 @@
 
         function initMapIfNeeded() {
             if (!map) {
-                map = L.map('map').setView([-23.5505, -46.6333], 14);
+                map = L.map('map').setView([-23.558, -46.655], 14);
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     attribution: '© OpenStreetMap contributors | UrbanVision'
                 }).addTo(map);
+
+                mapBairrosLayer = L.layerGroup().addTo(map);
+                mapViasLayer = L.layerGroup().addTo(map);
                 mapMarkersLayer = L.layerGroup().addTo(map);
+                mapHeatmapLayer = L.layerGroup(); // Inicialmente oculto
             }
         }
 
-        function renderMapMarkers() {
+        async function renderMapLayers() {
             initMapIfNeeded();
-            if (!mapMarkersLayer) return;
+            if (!map) return;
+
+            // 1. Limpa camadas
             mapMarkersLayer.clearLayers();
+            mapHeatmapLayer.clearLayers();
+            mapBairrosLayer.clearLayers();
+            mapViasLayer.clearLayers();
 
-            if (occurrences.length === 0) return;
+            // 2. Carrega Polígonos de Bairros (RF-11)
+            try {
+                const bairrosData = await apiGet('/territorio/bairros');
+                if (bairrosData.features && bairrosData.features.length > 0) {
+                    L.geoJSON(bairrosData, {
+                        style: {
+                            color: '#6366F1',
+                            weight: 2,
+                            fillColor: '#818CF8',
+                            fillOpacity: 0.08
+                        },
+                        onEachFeature: (feature, layer) => {
+                            layer.bindTooltip(`<b>${feature.properties.nome}</b><br>Malha elegível: ${feature.properties.malha_elegivel_km} km`, { sticky: true });
+                        }
+                    }).addTo(mapBairrosLayer);
+                }
+            } catch (e) {
+                console.warn("Bairros não carregados no mapa:", e);
+            }
 
-            const bounds = [];
+            // 3. Carrega Vias (RF-11)
+            try {
+                const viasData = await apiGet('/territorio/vias');
+                if (viasData.features && viasData.features.length > 0) {
+                    L.geoJSON(viasData, {
+                        style: {
+                            color: '#0284C7',
+                            weight: 3.5,
+                            opacity: 0.6
+                        },
+                        onEachFeature: (feature, layer) => {
+                            layer.bindTooltip(`<b>${feature.properties.nome_via}</b> (${feature.properties.extensao_km} km)`, { sticky: true });
+                        }
+                    }).addTo(mapViasLayer);
+                }
+            } catch (e) {
+                console.warn("Vias não carregadas no mapa:", e);
+            }
+
+            // 4. Marcadores de Ocorrências e Heatmap (RF-11, RF-13)
             const colorMap = {
                 'D00': '#38BDF8',
                 'D10': '#818CF8',
@@ -540,10 +705,17 @@
                 'D40': '#F43F5E'
             };
 
+            const heatPoints = [];
+            const bounds = [];
+
             occurrences.forEach(o => {
+                if (o.latitude === 0.0 && o.longitude === 0.0) return; // Ocorrência sem GPS
                 const color = colorMap[o.classe] || '#94A3B8';
                 const latLng = [o.latitude, o.longitude];
                 bounds.push(latLng);
+
+                // Ponto para Heatmap (lat, lon, intensidade)
+                heatPoints.push([o.latitude, o.longitude, o.confianca || 1.0]);
 
                 // Círculo de incerteza da captura (RN-01)
                 L.circle(latLng, {
@@ -577,8 +749,31 @@
                 `);
             });
 
+            // Constrói Heatmap
+            if (typeof L.heatLayer === 'function' && heatPoints.length > 0) {
+                const heat = L.heatLayer(heatPoints, { radius: 25, blur: 15, maxZoom: 17 });
+                mapHeatmapLayer.addLayer(heat);
+            }
+
             if (bounds.length > 0) {
                 map.fitBounds(bounds, { padding: [40, 40] });
+            }
+        }
+
+        function toggleMapLayer(layerType) {
+            initMapIfNeeded();
+            if (layerType === 'markers') {
+                const chk = document.getElementById('chkLayerMarkers').checked;
+                if (chk) map.addLayer(mapMarkersLayer); else map.removeLayer(mapMarkersLayer);
+            } else if (layerType === 'heatmap') {
+                const chk = document.getElementById('chkLayerHeatmap').checked;
+                if (chk) map.addLayer(mapHeatmapLayer); else map.removeLayer(mapHeatmapLayer);
+            } else if (layerType === 'bairros') {
+                const chk = document.getElementById('chkLayerBairros').checked;
+                if (chk) map.addLayer(mapBairrosLayer); else map.removeLayer(mapBairrosLayer);
+            } else if (layerType === 'vias') {
+                const chk = document.getElementById('chkLayerVias').checked;
+                if (chk) map.addLayer(mapViasLayer); else map.removeLayer(mapViasLayer);
             }
         }
 
@@ -600,6 +795,7 @@
 
             const occs = await apiGet(url);
             const container = document.getElementById('reviewCardsContainer');
+            selectedOccIds.clear();
 
             if (occs.length === 0) {
                 container.innerHTML = '<div class="col-span-3 text-center py-12 text-slate-500 text-xs">Nenhuma ocorrência encontrada para os filtros selecionados.</div>';
@@ -607,32 +803,35 @@
             }
 
             container.innerHTML = occs.map(o => `
-                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+                <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3 relative">
                     <div class="flex justify-between items-start">
-                        <div>
-                            <span class="text-xs font-mono text-slate-500">${o.id.substring(0, 10)}</span>
-                            <div class="text-sm font-bold text-white flex items-center gap-2">
-                                <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-sky-400 text-xs">${o.classe}</span>
-                                ${getTaxonomyName(o.classe)}
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" onchange="toggleSelectOcc('${o.id}', this.checked)" class="rounded bg-slate-900 border-slate-700 cursor-pointer">
+                            <div>
+                                <span class="text-xs font-mono text-slate-500">${o.id.substring(0, 10)}</span>
+                                <div class="text-xs font-bold text-white flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded bg-slate-900 border border-slate-700 text-sky-400">${o.classe}</span>
+                                    ${getTaxonomyName(o.classe)}
+                                </div>
                             </div>
                         </div>
-                        <span class="text-xs px-2 py-0.5 rounded ${o.status === 'confirmada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : o.status === 'rejeitada' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">
+                        <span class="text-[11px] px-2 py-0.5 rounded ${o.status === 'confirmada' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : o.status === 'rejeitada' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">
                             ${o.status}
                         </span>
                     </div>
 
-                    <!-- Imagem de Recorte (Crop) ou placeholder se não houver -->
-                    <div class="h-40 bg-slate-900 rounded-lg overflow-hidden border border-slate-800 flex items-center justify-center relative">
+                    <!-- Crop do dano -->
+                    <div class="h-36 bg-slate-900 rounded-lg overflow-hidden border border-slate-800 flex items-center justify-center relative">
                         ${o.deteccoes && o.deteccoes.length > 0 && o.deteccoes[0].recorte_uri ? 
                             `<img src="${o.deteccoes[0].recorte_uri}" alt="Recorte de dano" class="object-cover w-full h-full">` :
                             `<div class="text-slate-600 text-xs flex flex-col items-center gap-1"><i class="fa-solid fa-camera text-xl"></i><span>Foto GPS da Captura</span></div>`
                         }
                         <div class="absolute bottom-2 left-2 bg-slate-950/80 px-2 py-0.5 rounded text-[10px] text-slate-300 backdrop-blur">
-                            Confiança: ${(o.confianca * 100).toFixed(0)}%
+                            Confiança: ${(o.confianca * 100).toFixed(0)}% (${o.deteccoes ? o.deteccoes.length : 1} frames)
                         </div>
                     </div>
 
-                    <div class="text-xs text-slate-400 space-y-1">
+                    <div class="text-[11px] text-slate-400 space-y-1">
                         <div><i class="fa-solid fa-location-dot text-slate-500 w-4"></i> ${o.latitude.toFixed(5)}, ${o.longitude.toFixed(5)} (&plusmn;${o.incerteza_metros}m)</div>
                         <div><i class="fa-solid fa-road text-slate-500 w-4"></i> ${o.via_nome} - ${o.bairro_nome}</div>
                     </div>
@@ -644,9 +843,55 @@
                         <button onclick="reviewOccurrence('${o.id}', ${o.versao}, 'rejeitada')" class="flex-1 py-1.5 bg-rose-600 hover:bg-rose-500 text-xs font-semibold rounded text-white transition">
                             <i class="fa-solid fa-xmark"></i> Rejeitar
                         </button>
+                        ${o.deteccoes && o.deteccoes.length > 1 ? `
+                            <button onclick="separarOcorrencia('${o.id}')" title="Desmembrar frames agrupados (RF-09)" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 rounded text-xs">
+                                <i class="fa-solid fa-scissors"></i>
+                            </button>
+                        ` : ''}
                     </div>
                 </div>
             `).join('');
+        }
+
+        function toggleSelectOcc(id, checked) {
+            if (checked) selectedOccIds.add(id); else selectedOccIds.delete(id);
+        }
+
+        async function unirOcorrenciasSelecionadas() {
+            if (selectedOccIds.size < 2) {
+                alert("Selecione pelo menos duas ocorrências para unir.");
+                return;
+            }
+            const motivo = prompt("Motivo da união manual (RF-09):", "Frames correlatos do mesmo dano físico");
+            if (!motivo) return;
+
+            try {
+                await apiPost('/ocorrencias/unir', {
+                    ocorrencias_ids: Array.from(selectedOccIds),
+                    revisor: "Eng. Auditor",
+                    motivo: motivo
+                });
+                alert("Ocorrências unidas com sucesso!");
+                refreshData();
+            } catch (err) {
+                alert("Erro ao unir: " + err.message);
+            }
+        }
+
+        async function separarOcorrencia(id) {
+            const motivo = prompt("Motivo da separação manual (RF-09):", "Detecções em pontos distintos desmembradas");
+            if (!motivo) return;
+
+            try {
+                await apiPost(`/ocorrencias/${id}/separar`, {
+                    revisor: "Eng. Auditor",
+                    motivo: motivo
+                });
+                alert("Ocorrência desmembrada com sucesso!");
+                refreshData();
+            } catch (err) {
+                alert("Erro ao separar: " + err.message);
+            }
         }
 
         async function reviewOccurrence(id, versaoEsperada, novoStatus) {
@@ -665,7 +910,7 @@
                 });
 
                 if (res.status === 409) {
-                    alert("Aviso de Concorrência: esta ocorrência foi alterada por outro revisor simultaneamente. A tela será atualizada.");
+                    alert("Aviso de Concorrência Otimista (HTTP 409): esta ocorrência foi alterada por outro revisor simultaneamente. A tela será recarregada.");
                     refreshData();
                     return;
                 }
@@ -710,7 +955,6 @@
                 </tr>
             `).join('');
 
-            // Atualiza estatísticas do dashboard
             let sumLobs = 0;
             let sumCov = 0;
             indicators.forEach(i => {
@@ -800,9 +1044,191 @@
             window.location.href = `/v1/export/${type}?campanha_id=${activeCampaign.id}`;
         }
 
+        // Upload de Imagens com suporte a Manifesto CSV (RF-02, RF-03)
+        async function uploadImages() {
+            const campSelect = document.getElementById('uploadCampaignSelect');
+            const filesInput = document.getElementById('imageFilesInput');
+            const manifestInput = document.getElementById('manifestFileInput');
+            const resultsArea = document.getElementById('uploadResultsArea');
+            const btn = document.getElementById('btnUploadImages');
+
+            if (!filesInput.files || filesInput.files.length === 0) {
+                alert("Selecione pelo menos uma imagem para envio.");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Processando Ingestão...';
+
+            try {
+                // 1. Cria Lote
+                const lote = await apiPost('/lotes', { campanha_id: campSelect.value });
+
+                // 2. Upload com FormData
+                const formData = new FormData();
+                for (let i = 0; i < filesInput.files.length; i++) {
+                    formData.append('arquivos', filesInput.files[i]);
+                }
+                if (manifestInput.files && manifestInput.files.length > 0) {
+                    formData.append('manifesto', manifestInput.files[0]);
+                }
+
+                const res = await fetch(`/v1/lotes/${lote.id}/imagens`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+
+                // 3. Renderiza relatório por arquivo (RF-02)
+                resultsArea.innerHTML = data.resultados.map(r => `
+                    <div class="p-2.5 rounded bg-slate-900 border border-slate-800 flex justify-between items-center text-xs">
+                        <div>
+                            <div class="font-medium text-white">${r.arquivo}</div>
+                            <div class="text-[10px] text-slate-500 font-mono">Hash: ${r.hash ? r.hash.substring(0, 16) : 'N/A'}... | Fonte GPS: ${r.fonte_gps || 'exif'}</div>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[10px] ${
+                            r.status === 'valida' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                            r.status === 'valida_sem_gps' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                            'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                        }">${r.status} ${r.motivo ? `(${r.motivo})` : ''}</span>
+                    </div>
+                `).join('');
+
+                // 4. Dispara inferência
+                await apiPost(`/lotes/${lote.id}/execucoes`, {});
+                refreshData();
+                alert(`Lote processado! ${data.total} imagens validadas com sucesso.`);
+            } catch (err) {
+                alert("Erro no upload do lote: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-solid fa-cloud-arrow-up"></i> Iniciar Ingestão do Lote';
+            }
+        }
+
+        // Modelos de IA (Seção 06)
+        async function loadModels() {
+            try {
+                const models = await apiGet('/modelos');
+                const container = document.getElementById('modelsListContainer');
+                if (models.length === 0) {
+                    container.innerHTML = '<div class="text-xs text-slate-500 py-6 text-center">Nenhum modelo cadastrado.</div>';
+                    return;
+                }
+                container.innerHTML = models.map(m => {
+                    let metrics = {};
+                    try { metrics = JSON.parse(m.metricas_json); } catch(e){}
+                    return `
+                        <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <h4 class="font-bold text-white text-xs">${m.nome} <span class="text-sky-400">(${m.versao})</span></h4>
+                                    <div class="text-[10px] text-slate-400">Dataset de Referência: ${m.dataset_referencia}</div>
+                                </div>
+                                <span class="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-teal-500/10 text-teal-400 border border-teal-500/20">
+                                    ${m.status}
+                                </span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-2 text-center text-xs py-1 bg-slate-950 rounded border border-slate-800/80">
+                                <div><span class="text-[10px] text-slate-500">mAP50-95:</span> <span class="font-bold text-slate-200">${metrics['mAP50-95'] || '0.44'}</span></div>
+                                <div><span class="text-[10px] text-slate-500">Precisão:</span> <span class="font-bold text-slate-200">${metrics['precision'] || '0.82'}</span></div>
+                                <div><span class="text-[10px] text-slate-500">Recall:</span> <span class="font-bold text-slate-200">${metrics['recall'] || '0.74'}</span></div>
+                            </div>
+                            <div class="text-[10px] font-mono text-slate-500 truncate">Pesos: ${m.hash_pesos}</div>
+                        </div>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error("Erro ao carregar modelos:", err);
+            }
+        }
+
+        async function registerModel() {
+            const nome = document.getElementById('modelNameInput').value;
+            const versao = document.getElementById('modelVersionInput').value;
+            const hash = document.getElementById('modelHashInput').value;
+            try {
+                await apiPost('/modelos', {
+                    nome: nome,
+                    versao: versao,
+                    hash_pesos: hash,
+                    status: "aprovado",
+                    metricas: { "mAP50-95": 0.46, "precision": 0.85, "recall": 0.76 }
+                });
+                loadModels();
+                alert("Modelo cadastrado e versionado com sucesso!");
+            } catch (err) {
+                alert("Erro ao cadastrar modelo: " + err.message);
+            }
+        }
+
+        // Governança de Parâmetros (RF-19)
+        async function loadParameters() {
+            try {
+                const params = await apiGet('/administracao/parametros');
+                const container = document.getElementById('paramHistoryList');
+                if (params.length === 0) {
+                    container.innerHTML = '<div class="text-xs text-slate-500 py-6 text-center">Nenhuma configuração registrada.</div>';
+                    return;
+                }
+
+                // Atualiza Sref na barra lateral se houver versão ativa
+                const ativo = params.find(p => p.ativo);
+                if (ativo) {
+                    document.getElementById('sidebarSref').innerText = `Sref = ${ativo.s_ref.toFixed(1)}`;
+                    document.getElementById('iduSrefText').innerText = `${ativo.s_ref.toFixed(1)} /km`;
+                }
+
+                container.innerHTML = params.map(p => `
+                    <div class="bg-slate-900 p-4 rounded-xl border border-slate-800 space-y-2 relative">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-bold text-white text-xs">${p.versao} ${p.ativo ? '<span class="ml-2 px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">VIGENTE</span>' : '<span class="ml-2 px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-400">HISTÓRICO</span>'}</h4>
+                                <div class="text-[10px] text-slate-400">Autor: ${p.autor} | ${new Date(p.criado_em).toLocaleDateString('pt-BR')}</div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-2 text-center text-xs py-1.5 bg-slate-950 rounded border border-slate-800/80">
+                            <div><span class="text-[10px] text-slate-500">Sref:</span> <span class="font-bold text-slate-200">${p.s_ref.toFixed(1)}</span></div>
+                            <div><span class="text-[10px] text-slate-500">Raio:</span> <span class="font-bold text-slate-200">${p.raio_agrupamento_m}m</span></div>
+                            <div><span class="text-[10px] text-slate-500">Cob. Mín.:</span> <span class="font-bold text-slate-200">${p.min_cobertura_pct}%</span></div>
+                            <div><span class="text-[10px] text-slate-500">Lobs Mín.:</span> <span class="font-bold text-slate-200">${p.min_l_obs_km}km</span></div>
+                        </div>
+                        <div class="text-[11px] text-slate-300 italic">"${p.justificativa}"</div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                console.error("Erro ao carregar parâmetros:", err);
+            }
+        }
+
+        async function createParamConfig() {
+            const versao = document.getElementById('paramVersionInput').value;
+            const s_ref = parseFloat(document.getElementById('paramSrefInput').value);
+            const raio = parseFloat(document.getElementById('paramRadiusInput').value);
+            const min_cov = parseFloat(document.getElementById('paramMinCovInput').value);
+            const min_lobs = parseFloat(document.getElementById('paramMinLobsInput').value);
+            const autor = document.getElementById('paramAuthorInput').value;
+            const justificativa = document.getElementById('paramJustifInput').value;
+
+            try {
+                await apiPost('/administracao/parametros', {
+                    versao: versao,
+                    s_ref: s_ref,
+                    raio_agrupamento_m: raio,
+                    min_cobertura_pct: min_cov,
+                    min_l_obs_km: min_lobs,
+                    autor: autor,
+                    justificativa: justificativa
+                });
+                loadParameters();
+                alert("Nova versão de parâmetros cadastrada e ativada sem perda do histórico!");
+            } catch (err) {
+                alert("Erro ao criar parâmetros: " + err.message);
+            }
+        }
+
         async function bootstrapPilotData() {
             try {
-                // 1. Cria Campanha de Referência do Piloto
                 const cpg = await apiPost('/campanhas', {
                     municipio: "São Paulo - Piloto Zona Sul",
                     periodo: "2026-Q4",
@@ -812,12 +1238,7 @@
                     protocolo: "Padrao_Carro_Urbano_1080p"
                 });
 
-                // 2. Cria Lote
-                const lote = await apiPost('/lotes', {
-                    campanha_id: cpg.id
-                });
-
-                // 3. Executa inferência e cria ocorrências amostrais do piloto
+                const lote = await apiPost('/lotes', { campanha_id: cpg.id });
                 await apiPost(`/lotes/${lote.id}/execucoes`, {});
 
                 activeCampaign = cpg;
@@ -829,11 +1250,9 @@
             }
         }
 
-        // Inicialização ao carregar a página
         window.addEventListener('DOMContentLoaded', () => {
             refreshData();
         });
     </script>
 </body>
 </html>
-

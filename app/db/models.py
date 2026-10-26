@@ -69,6 +69,7 @@ class Midia(Base):
     longitude = Column(Float, nullable=True, index=True)
     altitude = Column(Float, nullable=True)
     precisao_gps = Column(Float, nullable=True)
+    fonte_gps = Column(String, default="exif")  # exif, manifesto_csv, manual, desconhecida
     status_qualidade = Column(String, default="valida")  # valida, descarte_nitidez, descarte_exposicao, descarte_sem_gps
     motivo_descarte = Column(String, nullable=True)
     criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -231,4 +232,21 @@ class Relatorio(Base):
     texto_conclusao = Column(Text, nullable=True)
 
     campanha = relationship("Campanha", back_populates="relatorios")
+
+
+class ConfiguracaoParametros(Base):
+    __tablename__ = "configuracoes_parametros"
+
+    id = Column(String, primary_key=True, default=lambda: generate_id("cfg"))
+    versao = Column(String, nullable=False, unique=True)
+    s_ref = Column(Float, default=40.0)
+    min_cobertura_pct = Column(Float, default=60.0)
+    min_l_obs_km = Column(Float, default=1.0)
+    raio_agrupamento_m = Column(Float, default=10.0)
+    pesos_classes_json = Column(Text, default='{"D00": 1.0, "D10": 1.0, "D20": 1.0, "D40": 1.0}')
+    ativo = Column(Boolean, default=True)
+    autor = Column(String, default="Sistema")
+    justificativa = Column(Text, default="Parâmetros iniciais de calibração do piloto")
+    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
 

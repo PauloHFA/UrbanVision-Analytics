@@ -81,3 +81,4 @@ Acesse o sistema no navegador:
 | `GET` | `/v1/relatorios/{id}/download` | Download do relatório PDF gerado |
 | `GET` | `/v1/export/csv` | Exportar ocorrências em CSV estruturado |
 | `GET` | `/v1/export/geojson` | Exportar ocorrências em GeoJSON WGS84 |
+
