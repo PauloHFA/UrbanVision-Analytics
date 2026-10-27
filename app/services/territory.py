@@ -171,6 +171,159 @@ CURATED_SP_TERRITORIES: Dict[str, Dict[str, Any]] = {
                 }
             }
         ]
+    },
+    "Copacabana": {
+        "municipio": "Rio de Janeiro",
+        "nome": "Copacabana",
+        "malha_elegivel_km": 4.5,
+        "geometria": {
+            "type": "Polygon",
+            "coordinates": [[
+                [-43.195, -22.985],
+                [-43.175, -22.985],
+                [-43.175, -22.965],
+                [-43.195, -22.965],
+                [-43.195, -22.985]
+            ]]
+        },
+        "vias": [
+            {
+                "nome_via": "Avenida Atlântica",
+                "extensao_km": 2.6,
+                "geometria": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [-43.175, -22.965],
+                        [-43.183, -22.975],
+                        [-43.190, -22.985]
+                    ]
+                }
+            },
+            {
+                "nome_via": "Avenida Nossa Senhora de Copacabana",
+                "extensao_km": 2.3,
+                "geometria": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [-43.178, -22.967],
+                        [-43.185, -22.976],
+                        [-43.192, -22.984]
+                    ]
+                }
+            },
+            {
+                "nome_via": "Rua Barata Ribeiro",
+                "extensao_km": 2.1,
+                "geometria": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [-43.180, -22.966],
+                        [-43.187, -22.975],
+                        [-43.193, -22.982]
+                    ]
+                }
+            }
+        ]
+    },
+    "Savassi": {
+        "municipio": "Belo Horizonte",
+        "nome": "Savassi",
+        "malha_elegivel_km": 3.8,
+        "geometria": {
+            "type": "Polygon",
+            "coordinates": [[
+                [-43.950, -19.950],
+                [-43.922, -19.950],
+                [-43.922, -19.925],
+                [-43.950, -19.925],
+                [-43.950, -19.950]
+            ]]
+        },
+        "vias": [
+            {
+                "nome_via": "Avenida Getúlio Vargas",
+                "extensao_km": 1.8,
+                "geometria": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [-43.940, -19.935],
+                        [-43.928, -19.942]
+                    ]
+                }
+            },
+            {
+                "nome_via": "Avenida Cristóvão Colombo",
+                "extensao_km": 1.5,
+                "geometria": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [-43.938, -19.933],
+                        [-43.932, -19.943]
+                    ]
+                }
+            },
+            {
+                "nome_via": "Avenida do Contorno (Savassi)",
+                "extensao_km": 2.2,
+                "geometria": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [-43.930, -19.932],
+                        [-43.935, -19.945]
+                    ]
+                }
+            }
+        ]
+    },
+    "Batel": {
+        "municipio": "Curitiba",
+        "nome": "Batel",
+        "malha_elegivel_km": 3.6,
+        "geometria": {
+            "type": "Polygon",
+            "coordinates": [[
+                [-49.300, -25.450],
+                [-49.280, -25.450],
+                [-49.280, -25.435],
+                [-49.300, -25.435],
+                [-49.300, -25.450]
+            ]]
+        },
+        "vias": [
+            {
+                "nome_via": "Avenida do Batel",
+                "extensao_km": 2.0,
+                "geometria": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [-49.298, -25.440],
+                        [-49.282, -25.448]
+                    ]
+                }
+            },
+            {
+                "nome_via": "Rua Bispo Dom José",
+                "extensao_km": 1.4,
+                "geometria": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [-49.295, -25.442],
+                        [-49.286, -25.449]
+                    ]
+                }
+            },
+            {
+                "nome_via": "Rua Sete de Setembro (Batel)",
+                "extensao_km": 1.6,
+                "geometria": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [-49.292, -25.438],
+                        [-49.283, -25.446]
+                    ]
+                }
+            }
+        ]
     }
 }
 
