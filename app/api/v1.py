@@ -23,7 +23,11 @@ from app.schemas.schemas import (
     RelatorioCreate, RelatorioResponse,
     IntervencaoCreate, IntervencaoResponse,
     OrdemServicoCreate, OrdemServicoResponse,
-    HistoricoOcorrenciaResponse
+    HistoricoOcorrenciaResponse,
+    BairroCreate, BairroResponse,
+    ViaCreate, ViaResponse,
+    ImportacaoTerritorioOSMRequest, ImportacaoGeoSampaRequest,
+    ImportacaoTerritorioResponse
 )
 from app.services.ingestion import (
     compute_sha256, extract_exif_metadata, check_image_quality, parse_manifest_csv
@@ -38,6 +42,11 @@ from app.services.reporter import (
     export_occurrences_csv,
     export_occurrences_geojson,
     generate_executive_pdf
+)
+from app.services.territory import (
+    fetch_osm_territory,
+    import_geosampa_geojson,
+    calculate_geometry_length_km
 )
 
 router = APIRouter(prefix="/v1")
@@ -763,6 +772,195 @@ def obter_territorio_vias(db: Session = Depends(get_db)):
         except Exception:
             pass
     return {"type": "FeatureCollection", "features": features}
+
+@router.post("/territorio/bairros", response_model=BairroResponse)
+def cadastrar_bairro(payload: BairroCreate, db: Session = Depends(get_db)):
+    existente = db.query(models.Bairro).filter(
+        models.Bairro.nome == payload.nome,
+        models.Bairro.municipio == payload.municipio
+    ).first()
+    if existente:
+        existente.geometria_geojson = payload.geometria_geojson
+        existente.malha_elegivel_km = payload.malha_elegivel_km or existente.malha_elegivel_km
+        db.commit()
+        db.refresh(existente)
+        return existente
+
+    bairro = models.Bairro(
+        municipio=payload.municipio,
+        nome=payload.nome,
+        geometria_geojson=payload.geometria_geojson,
+        malha_elegivel_km=payload.malha_elegivel_km or 0.0
+    )
+    db.add(bairro)
+    db.commit()
+    db.refresh(bairro)
+    return bairro
+
+@router.post("/territorio/vias", response_model=ViaResponse)
+def cadastrar_via(payload: ViaCreate, db: Session = Depends(get_db)):
+    existente = db.query(models.ViaTrecho).filter(
+        models.ViaTrecho.bairro_nome == payload.bairro_nome,
+        models.ViaTrecho.nome_via == payload.nome_via
+    ).first()
+    if existente:
+        existente.geometria_geojson = payload.geometria_geojson
+        existente.extensao_km = payload.extensao_km or existente.extensao_km
+        existente.elegivel = payload.elegivel if payload.elegivel is not None else existente.elegivel
+        db.commit()
+        db.refresh(existente)
+        return existente
+
+    via = models.ViaTrecho(
+        bairro_nome=payload.bairro_nome,
+        nome_via=payload.nome_via,
+        geometria_geojson=payload.geometria_geojson,
+        extensao_km=payload.extensao_km or 0.1,
+        elegivel=payload.elegivel if payload.elegivel is not None else True
+    )
+    db.add(via)
+    db.commit()
+    db.refresh(via)
+    return via
+
+@router.post("/territorio/importar-osm", response_model=ImportacaoTerritorioResponse)
+def importar_territorio_osm(payload: ImportacaoTerritorioOSMRequest, db: Session = Depends(get_db)):
+    """
+    Importa limites do bairro e eixos de vias via OpenStreetMap (Overpass API).
+    Calcula automaticamente a extensão viária geodésica oficial (L_eleg).
+    """
+    dados = fetch_osm_territory(
+        municipio=payload.municipio,
+        bairro_nome=payload.bairro_nome,
+        tipos_vias=payload.tipos_vias,
+        overpass_url=payload.overpass_url or "https://overpass-api.de/api/interpreter"
+    )
+
+    if not dados.get("geometria"):
+        raise HTTPException(status_code=400, detail=f"Não foi possível extrair a geometria para o bairro {payload.bairro_nome}")
+
+    # Cadastra ou atualiza Bairro
+    bairro = db.query(models.Bairro).filter(
+        models.Bairro.nome == dados["nome"],
+        models.Bairro.municipio == dados["municipio"]
+    ).first()
+    geom_str = json.dumps(dados["geometria"])
+    malha_km = float(dados.get("malha_elegivel_km", 0.0))
+
+    if bairro:
+        bairro.geometria_geojson = geom_str
+        bairro.malha_elegivel_km = malha_km
+    else:
+        bairro = models.Bairro(
+            municipio=dados["municipio"],
+            nome=dados["nome"],
+            geometria_geojson=geom_str,
+            malha_elegivel_km=malha_km
+        )
+        db.add(bairro)
+    db.commit()
+    db.refresh(bairro)
+
+    # Cadastra ou atualiza Vias
+    total_vias = 0
+    if payload.incluir_vias and dados.get("vias"):
+        for v in dados["vias"]:
+            v_geom_str = json.dumps(v["geometria"])
+            via_existente = db.query(models.ViaTrecho).filter(
+                models.ViaTrecho.bairro_nome == bairro.nome,
+                models.ViaTrecho.nome_via == v["nome_via"]
+            ).first()
+            if via_existente:
+                via_existente.geometria_geojson = v_geom_str
+                via_existente.extensao_km = v["extensao_km"]
+            else:
+                db.add(models.ViaTrecho(
+                    bairro_nome=bairro.nome,
+                    nome_via=v["nome_via"],
+                    geometria_geojson=v_geom_str,
+                    extensao_km=v["extensao_km"],
+                    elegivel=True
+                ))
+            total_vias += 1
+        db.commit()
+
+    return ImportacaoTerritorioResponse(
+        bairro_id=bairro.id,
+        nome=bairro.nome,
+        municipio=bairro.municipio,
+        malha_elegivel_km=bairro.malha_elegivel_km,
+        total_vias_importadas=total_vias,
+        fonte_origem="OpenStreetMap (Overpass API / Malha Homologada)",
+        mensagem=f"Bairro {bairro.nome} cadastrado com sucesso. Malha elegível oficial: {bairro.malha_elegivel_km:.2f} km."
+    )
+
+@router.post("/territorio/importar-geosampa", response_model=ImportacaoTerritorioResponse)
+def importar_territorio_geosampa(payload: ImportacaoGeoSampaRequest, db: Session = Depends(get_db)):
+    """
+    Importa arquivos padrão GeoSampa (Prefeitura Municipal de São Paulo).
+    Lê geometrias WGS84 de Distritos/Bairros e calcula a extensão de vias automaticamente.
+    """
+    dados = import_geosampa_geojson(
+        bairro_feature=payload.bairro_feature,
+        vias_features=payload.vias_features,
+        municipio=payload.municipio
+    )
+
+    if not dados.get("geometria"):
+        raise HTTPException(status_code=400, detail="Geometria do bairro ausente no GeoJSON do GeoSampa")
+
+    bairro = db.query(models.Bairro).filter(
+        models.Bairro.nome == dados["nome"],
+        models.Bairro.municipio == dados["municipio"]
+    ).first()
+    geom_str = json.dumps(dados["geometria"])
+    malha_km = float(dados.get("malha_elegivel_km", 0.0))
+
+    if bairro:
+        bairro.geometria_geojson = geom_str
+        bairro.malha_elegivel_km = malha_km
+    else:
+        bairro = models.Bairro(
+            municipio=dados["municipio"],
+            nome=dados["nome"],
+            geometria_geojson=geom_str,
+            malha_elegivel_km=malha_km
+        )
+        db.add(bairro)
+    db.commit()
+    db.refresh(bairro)
+
+    total_vias = 0
+    if dados.get("vias"):
+        for v in dados["vias"]:
+            v_geom_str = json.dumps(v["geometria"])
+            via_existente = db.query(models.ViaTrecho).filter(
+                models.ViaTrecho.bairro_nome == bairro.nome,
+                models.ViaTrecho.nome_via == v["nome_via"]
+            ).first()
+            if via_existente:
+                via_existente.geometria_geojson = v_geom_str
+                via_existente.extensao_km = v["extensao_km"]
+            else:
+                db.add(models.ViaTrecho(
+                    bairro_nome=bairro.nome,
+                    nome_via=v["nome_via"],
+                    geometria_geojson=v_geom_str,
+                    extensao_km=v["extensao_km"],
+                    elegivel=True
+                ))
+            total_vias += 1
+        db.commit()
+
+    return ImportacaoTerritorioResponse(
+        bairro_id=bairro.id,
+        nome=bairro.nome,
+        municipio=bairro.municipio,
+        malha_elegivel_km=bairro.malha_elegivel_km,
+        total_vias_importadas=total_vias,
+        fonte_origem="GeoSampa (Prefeitura de São Paulo)",
+        mensagem=f"Bairro {bairro.nome} integrado via GeoSampa. Malha elegível calculada: {bairro.malha_elegivel_km:.2f} km."
+    )
 
 # --- 9. Modelos de IA (Seção 06 e Seção 10) ---
 @router.get("/modelos", response_model=List[ModeloResponse])

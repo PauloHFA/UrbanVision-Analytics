@@ -265,3 +265,57 @@ class HistoricoOcorrenciaResponse(BaseModel):
     revisoes: List[RevisaoHistorico] = []
     intervencoes: List[IntervencaoResponse] = []
     ordens_servico: List[OrdemServicoResponse] = []
+
+# --- Gestão Territorial e Integrações Abertas (OSM / GeoSampa) ---
+class BairroCreate(BaseModel):
+    municipio: str = "São Paulo"
+    nome: str
+    geometria_geojson: str
+    malha_elegivel_km: Optional[float] = 0.0
+
+class BairroResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    municipio: str
+    nome: str
+    geometria_geojson: str
+    malha_elegivel_km: float
+
+class ViaCreate(BaseModel):
+    bairro_nome: str
+    nome_via: str
+    geometria_geojson: str
+    extensao_km: Optional[float] = 0.1
+    elegivel: Optional[bool] = True
+
+class ViaResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    bairro_nome: str
+    nome_via: str
+    geometria_geojson: str
+    extensao_km: float
+    elegivel: bool
+
+class ImportacaoTerritorioOSMRequest(BaseModel):
+    municipio: str = "São Paulo"
+    bairro_nome: str
+    incluir_vias: Optional[bool] = True
+    tipos_vias: Optional[List[str]] = ["primary", "secondary", "tertiary", "residential"]
+    overpass_url: Optional[str] = "https://overpass-api.de/api/interpreter"
+
+class ImportacaoGeoSampaRequest(BaseModel):
+    municipio: str = "São Paulo"
+    bairro_feature: Dict[str, Any]
+    vias_features: Optional[List[Dict[str, Any]]] = None
+
+class ImportacaoTerritorioResponse(BaseModel):
+    bairro_id: str
+    nome: str
+    municipio: str
+    malha_elegivel_km: float
+    total_vias_importadas: int
+    fonte_origem: str
+    mensagem: str

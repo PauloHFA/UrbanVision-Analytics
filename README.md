@@ -204,9 +204,11 @@ Inicializa o contêiner `urbanvision_db` (PostGIS com healthcheck) e `urbanvisio
 * `GET /v1/export/csv` — Exportar ocorrências em CSV estruturado
 * `GET /v1/export/geojson` — Exportar ocorrências em padrão GeoJSON WGS84
 
-### Território, Modelos e Parâmetros
-* `POST /v1/territorio/bairros` | `GET /v1/territorio/bairros` — Gestão de bairros e malha elegível ($L_{eleg}$)
-* `POST /v1/territorio/vias` | `GET /v1/territorio/vias` — Cadastro de eixos viários e trechos elegíveis
+### Território e Integrações com Dados Abertos (OSM & GeoSampa)
+* `POST /v1/territorio/importar-osm` — Importação automatizada via OpenStreetMap (Overpass API) com cálculo geodésico da malha elegível ($L_{eleg}$) e cadastro de vias estruturantes
+* `POST /v1/territorio/importar-geosampa` — Ingestão de arquivos oficiais GeoJSON do GeoSampa (Prefeitura de São Paulo)
+* `POST /v1/territorio/bairros` | `GET /v1/territorio/bairros` — Cadastro manual e listagem de bairros e malhas elegíveis
+* `POST /v1/territorio/vias` | `GET /v1/territorio/vias` — Cadastro e consulta de eixos viários e trechos elegíveis
 * `POST /v1/modelos` | `GET /v1/modelos` — Catálogo e versionamento de pesos de modelos de IA
 * `POST /v1/parametros` | `GET /v1/parametros` — Gestão e versionamento de parâmetros de calibração do IDU
 
