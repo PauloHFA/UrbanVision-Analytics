@@ -110,6 +110,79 @@ def export_occurrences_geojson(occurrences: List[Dict[str, Any]]) -> Dict[str, A
         "features": features
     }
 
+def generate_comparative_chart_image(
+    indicadores: List[Dict[str, Any]],
+    d_municipal: Optional[float],
+    ocorrencias: List[Dict[str, Any]],
+    save_path: Path
+) -> Path:
+    """Gera visualização gráfica executiva com barras comparativas e tipologia RDD2022."""
+    from PIL import Image, ImageDraw
+    width, height = 900, 260
+    im = Image.new('RGB', (width, height), (255, 255, 255))
+    draw = ImageDraw.Draw(im)
+
+    # Moldura externa do gráfico
+    draw.rounded_rectangle([2, 2, width - 3, height - 3], radius=6, fill=(248, 250, 252), outline=(226, 232, 240), width=1)
+
+    # Painel 1: Comparativo de Severidade e Densidade
+    draw.text((25, 14), "1. DENSIDADE (DANOS/KM) E SCORE IDU POR BAIRRO", fill=(15, 23, 42))
+
+    categories = []
+    for ind in indicadores:
+        categories.append((ind.get("bairro_nome", ""), ind.get("densidade", 0.0), ind.get("idu_score", 0.0)))
+    if d_municipal:
+        categories.append(("Média Municipal", d_municipal, None))
+
+    x_base = 35
+    y_base = 42
+    bar_h = 15
+    scale = 220.0 / 35.0
+
+    for i, (name, dens, idu) in enumerate(categories):
+        y = y_base + i * 55
+        draw.text((x_base, y), f"{name}", fill=(51, 65, 85))
+
+        # Barra de Densidade
+        w_d = max(10, int(dens * scale))
+        draw.rounded_rectangle([x_base, y + 14, x_base + w_d, y + 14 + bar_h], radius=3, fill=(37, 99, 235))
+        draw.text((x_base + w_d + 6, y + 15), f"{dens:.1f}/km", fill=(30, 58, 138))
+
+        # Barra de IDU
+        if idu is not None:
+            w_i = max(10, int(idu * scale))
+            draw.rounded_rectangle([x_base, y + 14 + bar_h + 3, x_base + w_i, y + 14 + 2 * bar_h + 3], radius=3, fill=(234, 88, 12))
+            draw.text((x_base + w_i + 6, y + 15 + bar_h + 3), f"IDU {idu:.1f}", fill=(154, 52, 18))
+
+    # Painel 2: Tipologia RDD2022
+    x_right = 470
+    draw.text((x_right, 14), "2. TIPOLOGIA DE DEFEITOS RDD2022 (TODOS OS BAIRROS)", fill=(15, 23, 42))
+
+    cls_counts = {}
+    for o in ocorrencias:
+        c = o.get("classe", "")
+        cls_counts[c] = cls_counts.get(c, 0) + 1
+
+    total_occs = max(1, sum(cls_counts.values()))
+    tipos_meta = [
+        ("D00", "Trinca Longitudinal", (37, 99, 235)),
+        ("D10", "Trinca Transversal", (13, 148, 136)),
+        ("D40", "Buraco (Pothole)", (220, 38, 38)),
+        ("D20", "Trinca tipo Jacaré", (217, 119, 6))
+    ]
+
+    y_tipos = y_base
+    for code, label, color in tipos_meta:
+        qtd = cls_counts.get(code, 0)
+        pct = (qtd / total_occs) * 100.0
+        draw.text((x_right, y_tipos), f"{label} ({code}): {qtd} danos ({pct:.1f}%)", fill=(51, 65, 85))
+        w_t = max(8, int((pct / 100.0) * 360))
+        draw.rounded_rectangle([x_right, y_tipos + 14, x_right + w_t, y_tipos + 26], radius=3, fill=color)
+        y_tipos += 45
+
+    im.save(save_path, "PNG")
+    return save_path
+
 def generate_executive_pdf(
     campanha: Dict[str, Any],
     indicadores: List[Dict[str, Any]],
@@ -221,15 +294,26 @@ def generate_executive_pdf(
     elements.append(table)
     elements.append(Spacer(1, 10))
 
-    # Seção 2: Conclusões Automatizadas
-    elements.append(Paragraph("2. Conclusões Baseadas em Evidências Verificadas", h2_style))
+    # Seção 2: Análise Gráfica Comparativa
+    chart_filename = f"chart_{campanha.get('id', 'cpg')}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    chart_path = REPORTS_DIR / chart_filename
+    try:
+        generate_comparative_chart_image(indicadores, d_municipal, ocorrencias, chart_path)
+        elements.append(Paragraph("2. Análise Gráfica Comparativa e Tipologia de Danos", h2_style))
+        elements.append(RLImage(str(chart_path), width=523, height=150))
+        elements.append(Spacer(1, 10))
+    except Exception as e:
+        pass
+
+    # Seção 3: Conclusões Automatizadas
+    elements.append(Paragraph("3. Conclusões Baseadas em Evidências Verificadas", h2_style))
     for c in conclusoes:
         elements.append(Paragraph(f"• {c}", body_style))
         elements.append(Spacer(1, 4))
     elements.append(Spacer(1, 8))
 
-    # Seção 3: Ocorrências Prioritárias Auditáveis
-    elements.append(Paragraph("3. Ocorrências Prioritárias e Amostra de Evidências", h2_style))
+    # Seção 4: Ocorrências Prioritárias Auditáveis
+    elements.append(Paragraph("4. Ocorrências Prioritárias e Amostra de Evidências", h2_style))
     occ_sample = ocorrencias[:10]
     occ_data = [["ID Ocorrência", "Classe RDD2022", "Confiança", "Coordenadas (Lat, Lon)", "Status", "Via / Bairro"]]
     for o in occ_sample:
@@ -258,7 +342,7 @@ def generate_executive_pdf(
     elements.append(Spacer(1, 14))
 
     # Limitações e Declaração de Conformidade (Princípio da Seção 01 e Seção 11)
-    elements.append(Paragraph("4. Limitações Técnicas e Salvaguardas Éticas", h2_style))
+    elements.append(Paragraph("5. Limitações Técnicas e Salvaguardas Éticas", h2_style))
     disclaimer = (
         "<b>Aviso de Responsabilidade e Limites do MVP:</b> O UrbanVision Analytics apoia a triagem técnica "
         "e a priorização de vistorias de campo. Não estima profundidade milimétrica de buracos, resistência "
