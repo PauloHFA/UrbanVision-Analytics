@@ -360,11 +360,33 @@ def main():
     db.close()
 
     nacionais = [
-        # 1. São Paulo - Zona Oeste e Centro
+        # 1. São Paulo - Setor Central e Paulista
         {
             "municipio": "São Paulo",
             "periodo": "2026-Q4",
-            "campanha_nome": "Setor Oeste e Central",
+            "campanha_nome": "Setor Central e Paulista",
+            "bairros": [
+                {
+                    "nome": "Cerqueira César",
+                    "malha_elegivel_km": 2.5,
+                    "p_start": (-23.5550, -46.6700),
+                    "p_end": (-23.5650, -46.6500),
+                    "num_pontos": 38
+                },
+                {
+                    "nome": "Bela Vista",
+                    "malha_elegivel_km": 2.2,
+                    "p_start": (-23.5530, -46.6480),
+                    "p_end": (-23.5630, -46.6390),
+                    "num_pontos": 32
+                }
+            ]
+        },
+        # 2. São Paulo - Setor Oeste e Consolação
+        {
+            "municipio": "São Paulo",
+            "periodo": "2026-Q4",
+            "campanha_nome": "Setor Oeste e Consolação",
             "bairros": [
                 {
                     "nome": "Pinheiros",

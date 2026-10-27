@@ -275,6 +275,74 @@ CURATED_SP_TERRITORIES: Dict[str, Dict[str, Any]] = {
             }
         ]
     },
+    "Cerqueira César": {
+        "municipio": "São Paulo",
+        "nome": "Cerqueira César",
+        "malha_elegivel_km": 2.5,
+        "geometria": {
+            "type": "Polygon",
+            "coordinates": [[
+                [-46.675, -23.570],
+                [-46.648, -23.570],
+                [-46.648, -23.550],
+                [-46.675, -23.550],
+                [-46.675, -23.570]
+            ]]
+        },
+        "vias": [
+            {
+                "nome_via": "Avenida Paulista",
+                "extensao_km": 2.2,
+                "geometria": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [-46.670, -23.555],
+                        [-46.660, -23.560],
+                        [-46.650, -23.565]
+                    ]
+                }
+            },
+            {
+                "nome_via": "Rua Augusta",
+                "extensao_km": 1.4,
+                "geometria": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [-46.662, -23.551],
+                        [-46.665, -23.562]
+                    ]
+                }
+            }
+        ]
+    },
+    "Bela Vista": {
+        "municipio": "São Paulo",
+        "nome": "Bela Vista",
+        "malha_elegivel_km": 2.2,
+        "geometria": {
+            "type": "Polygon",
+            "coordinates": [[
+                [-46.655, -23.565],
+                [-46.635, -23.565],
+                [-46.635, -23.550],
+                [-46.655, -23.550],
+                [-46.655, -23.565]
+            ]]
+        },
+        "vias": [
+            {
+                "nome_via": "Rua Bela Cintra",
+                "extensao_km": 1.8,
+                "geometria": {
+                    "type": "LineString",
+                    "coordinates": [
+                        [-46.648, -23.553],
+                        [-46.640, -23.562]
+                    ]
+                }
+            }
+        ]
+    },
     "Batel": {
         "municipio": "Curitiba",
         "nome": "Batel",
