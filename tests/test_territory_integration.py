@@ -171,3 +171,4 @@ def test_importacao_geosampa_padrao_prefeitura(db_session):
     # Verifica camada GeoJSON retornada pelo endpoint de visualização
     geo_bairros = obter_territorio_bairros(db=db_session)
     assert any(f["properties"]["nome"] == "Itaim Bibi" for f in geo_bairros["features"])
+

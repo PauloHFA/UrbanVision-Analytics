@@ -17,6 +17,7 @@ from app.services.deduplication import cluster_detections_into_occurrences
 from app.services.spatial import match_point_to_territory, calculate_unique_observed_length_km
 from app.services.idu import calculate_bairro_idu, calculate_municipal_aggregate
 from app.services.reporter import generate_executive_pdf, generate_automated_conclusion
+from app.services.territory import fetch_osm_territory
 
 def create_sample_image(filename: str, dt: datetime, color=(75, 80, 85)) -> Path:
     img_path = UPLOAD_DIR / filename
@@ -97,6 +98,15 @@ def seed():
             malha_elegivel_km=b["malha_elegivel_km"]
         ))
 
+    # Integração OpenStreetMap para Bairro Pinheiros
+    osm_pinheiros = fetch_osm_territory("São Paulo", "Pinheiros")
+    db.add(models.Bairro(
+        municipio="São Paulo",
+        nome="Pinheiros",
+        geometria_geojson=json.dumps(osm_pinheiros["geometria"]),
+        malha_elegivel_km=3.1  # Corredor Faria Lima prioritário do piloto
+    ))
+
     vias_data = [
         {
             "nome_via": "Avenida Paulista",
@@ -141,6 +151,14 @@ def seed():
         db.add(models.ViaTrecho(
             nome_via=v["nome_via"],
             bairro_nome=v["bairro_nome"],
+            extensao_km=v["extensao_km"],
+            geometria_geojson=json.dumps(v["geometria"])
+        ))
+
+    for v in osm_pinheiros.get("vias", []):
+        db.add(models.ViaTrecho(
+            nome_via=v["nome_via"],
+            bairro_nome="Pinheiros",
             extensao_km=v["extensao_km"],
             geometria_geojson=json.dumps(v["geometria"])
         ))
@@ -232,6 +250,39 @@ def seed():
             longitude=lon,
             altitude=760.0,
             precisao_gps=2.5,
+            status_qualidade="valida"
+        )
+        db.add(midia)
+        db.flush()
+        midias.append(midia)
+
+    # 3.3 Pinheiros (Av. Brigadeiro Faria Lima / Rua dos Pinheiros - Integrado via OpenStreetMap)
+    lat_start_pin, lon_start_pin = -23.5750, -46.7050
+    lat_end_pin, lon_end_pin = -23.5550, -46.6820
+    num_points_pin = 40
+
+    for i in range(num_points_pin):
+        fraction = i / (num_points_pin - 1)
+        lat = round(lat_start_pin + fraction * (lat_end_pin - lat_start_pin), 6)
+        lon = round(lon_start_pin + fraction * (lon_end_pin - lon_start_pin), 6)
+        t_capture = base_time + timedelta(seconds=(num_points_cc + num_points_bv + i) * 12)
+
+        img_file = f"pilot_pin_{i+1:02d}.jpg"
+        img_p = create_sample_image(img_file, t_capture)
+        sha = compute_sha256(img_p)
+
+        midia = models.Midia(
+            lote_id=lote.id,
+            uri_privada=str(img_p),
+            hash_sha256=sha,
+            formato="JPEG",
+            largura=640,
+            altura=480,
+            timestamp_utc=t_capture,
+            latitude=lat,
+            longitude=lon,
+            altitude=745.0,
+            precisao_gps=2.2,
             status_qualidade="valida"
         )
         db.add(midia)

@@ -378,3 +378,4 @@ def import_geosampa_geojson(
         "malha_elegivel_km": total_malha_km,
         "vias": vias
     }
+
