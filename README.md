@@ -64,20 +64,34 @@ A plataforma automatiza todo o fluxo desde a coleta de imagens/vídeos de campo 
 * **Extensão Única Observada ($L_{obs}$) sem Sobrecontagem (RN-05):**
   * Discretização espacial em células geodésicas únicas de 50 metros, garantindo que passagens repetidas na mesma via não inflem o denominador da inspeção.
 
-### 4. Metodologia Oficial do IDU-Pavimento (RF-15, Seção 08, AT-06)
-* **Fórmulas de Cálculo:**
-  * **Cobertura da Malha:**
+### 4. Metodologia Oficial do IDU-Pavimento e Limitações de Dados (RF-15, RN-07, Seção 08, AT-06)
+* **Fórmulas Matemáticas de Cálculo:**
+  * **Cobertura da Malha Viária:**
     $$C = \frac{L_{obs}}{L_{eleg}}$$
   * **Densidade de Ocorrências:**
     $$D = \frac{N}{L_{obs}} \quad (\text{ocorrências confirmadas por km})$$
-  * **Carga Ponderada de Defeitos:**
+  * **Carga Ponderada de Severidade de Defeitos:**
     $$S = \frac{\sum (w_i \cdot s_i)}{L_{obs}}$$
-  * **Score do IDU (0 a 100):**
+  * **Score do IDU-Pavimento (0 a 100):**
     $$\text{IDU} = 100 \cdot \min\left(1, \frac{S}{S_{ref}}\right) \quad (\text{com } S_{ref} = 40{,}0/\text{km})$$
-* **Critérios Estritos de Elegibilidade Estatística (RN-07):**
-  * $\text{Cobertura } C \ge 60{,}0\%$ da malha elegível;
-  * Extensão inspecionada $L_{obs} \ge 1{,}0\text{ km}$;
-  * Se a amostragem for inferior, o território é classificado como *"Inelegível para IDU Definitivo"*, exigindo coleta complementar.
+* **Critérios Estritos de Elegibilidade Estatística e Limitações Amostrais (RN-07):**
+  A emissão de relatórios oficiais e a validação do IDU estão sujeitas a critérios matemáticos que evitam indução a erros de planejamento:
+  * **Extensão Mínima Amostrada:** $L_{obs} \ge 1{,}0\text{ km}$. Campanhas com extensão inferior carecem de significância estatística sobre o estado da malha.
+  * **Cobertura Mínima da Malha Elegível:** $C = \frac{L_{obs}}{L_{eleg}} \ge 60{,}0\%$. Traçados que não percorram pelo menos 60% das vias estruturantes do território são classificados como estatisticamente não representativos.
+  * **Tratamento de Inelegibilidade pelo Sistema:**
+    * O bairro/campanha é registrado com `elegivel = False` e anotação técnica detalhada em `motivo_inelegivel` (ex: *"Amostragem insuficiente: cobertura de 45.2% inferior ao limiar estatutário de 60.0%"*);
+    * O PDF Executivo estampa tarja e selo de advertência informando que os índices **não possuem validade para fins de dotação orçamentária definitiva**;
+    * A conclusão automatizada suprime rankings de prioridade e gera recomendação de vistoria complementar para suprir a lacuna amostral.
+* **Diferenciação entre Territórios Cadastrados vs Territórios com Amostragem Ativa:**
+  * **Território Apenas Cadastrado (Malha Base):** Possui polígono vetorial e malha elegível ($L_{eleg}$) homologados no banco (via OSM Overpass ou GeoSampa), mas sem passagens veiculares cadastradas ($L_{obs} = 0\text{ km}$, ex: *Vila Madalena*, *Itaim Bibi*). O sistema impede a emissão de IDU definitivo até que haja coleta.
+  * **Território com Campanha Completa e Elegível:** Possui telemetria GPS e lotes de vídeo/foto processados que cumprem simultaneamente $L_{obs} \ge 1\text{ km}$ e $C \ge 60\%$.
+* **Inventário de Capacidade de Emissão Atual:**
+  * **4 Relatórios Executivos Oficiais por Município:** São Paulo ($68.8\%$), Rio de Janeiro ($63.2\%$), Belo Horizonte ($90.0\%$) e Curitiba ($63.5\%$);
+  * **7 Relatórios Monográficos Independentes por Bairro:** Cerqueira César ($74.0\%$), Bela Vista ($63.6\%$), Pinheiros ($67.7\%$), Consolação ($70.0\%$), Copacabana ($63.2\%$), Savassi ($90.0\%$) e Batel ($63.5\%$).
+* **Como Superar a Limitação de Amostragem em Novos Municípios:**
+  1. Ingestão territorial instantânea via `POST /v1/territorio/importar-osm` (OpenStreetMap global) ou `POST /v1/territorio/importar-geosampa`;
+  2. Coleta veicular embarcada (câmeras de celulares ou gravadores veiculares dashcam) em traçado contínuo;
+  3. Ingestão de vídeo via `app/services/video.py` ou manifesto CSV com interpolação geodésica temporal de GPS para cobrir $\ge 60\%$ das vias.
 * **Faixas Oficiais de Severidade:**
   * $[0, 25)$: **Baixa**
   * $[25, 50)$: **Moderada**
@@ -146,19 +160,25 @@ python -m venv .venv
 pip install -e .
 ```
 
-### 2. Executar a Suíte de Testes Automatizados (16/16 Testes)
+### 2. Executar a Suíte de Testes Automatizados (20/20 Testes)
 ```powershell
 .\.venv\Scripts\pytest -v
 ```
-*Testa rigorosamente: critérios de aceite AT-01 a AT-08, concorrência otimista 409, expansão P1 (intervenções e OS), deduplicação 10m e cálculo matemático do IDU.*
+*Testa rigorosamente: critérios de aceite AT-01 a AT-08, concorrência otimista 409, expansão P1 (intervenções e OS), deduplicação 10m, cálculo matemático do IDU, persistência de gráficos e integração de dados abertos (OSM e GeoSampa).*
 
-### 3. Popular Dados da Campanha Piloto Oficial (São Paulo)
-Gera trilhas GPS contínuas nos bairros **Cerqueira César** e **Bela Vista**, executa deduplicação de 10m, calcula os indicadores elegíveis (> 60%) e emite o Relatório Executivo PDF com gráficos:
+### 3. Gerar Campanhas Nacionais Multi-Capitais (São Paulo, Rio, BH e Curitiba)
+Executa a ingestão territorial aberta via OpenStreetMap, simula as passagens veiculares com conformidade estatística ($C \ge 60\%$), calcula os IDUs municipais e emite 4 Relatórios Executivos em PDF com gráficos comparativos e hashes SHA-256:
+```powershell
+.\.venv\Scripts\python sample_data/generate_national_reports.py
+```
+
+### 4. Popular Dados da Campanha Piloto Original (São Paulo)
+Gera trilhas GPS contínuas nos bairros **Cerqueira César**, **Bela Vista** e **Pinheiros**:
 ```powershell
 .\.venv\Scripts\python sample_data/seed_pilot.py
 ```
 
-### 4. Iniciar o Servidor FastAPI
+### 5. Iniciar o Servidor FastAPI
 ```powershell
 .\.venv\Scripts\uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
 ```
@@ -166,7 +186,7 @@ Gera trilhas GPS contínuas nos bairros **Cerqueira César** e **Bela Vista**, e
 * Documentação interativa Swagger: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 * Documentação técnica ReDoc: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
 
-### 5. Execução em Produção via Docker Compose (PostgreSQL 16 + PostGIS)
+### 6. Execução em Produção via Docker Compose (PostgreSQL 16 + PostGIS)
 ```bash
 docker compose up -d --build
 ```
