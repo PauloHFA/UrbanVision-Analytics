@@ -26,7 +26,8 @@ def db_session():
     finally:
         db.close()
 
-def test_full_pipeline_and_concurrency_at07(db_session):
+def test_full_pipeline_and_concurrency_at07(db_session, tmp_path, monkeypatch):
+    monkeypatch.setattr("app.services.reporter.REPORTS_DIR", tmp_path)
     """
     Testa o ciclo de vida completo do UrbanVision Analytics:
     1. Criação de Campanha (RF-01)
