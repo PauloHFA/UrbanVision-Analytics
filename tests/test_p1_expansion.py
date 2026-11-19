@@ -1,19 +1,21 @@
-import pytest
+from pathlib import Path
+
 import cv2
 import numpy as np
-from pathlib import Path
-from datetime import datetime, timezone
-from app.core.config import UPLOAD_DIR, settings
-from app.db.session import SessionLocal, Base, engine
-from app.db import models
-from app.schemas.schemas import IntervencaoCreate, OrdemServicoCreate
+import pytest
+
 from app.api.v1 import (
+    listar_ordens_servico,
+    obter_historico_ocorrencia,
     registrar_intervencao_reinspecao,
     vincular_ordem_servico,
-    obter_historico_ocorrencia,
-    listar_ordens_servico
 )
-from app.services.video import extract_frames_from_video, interpolate_gps
+from app.core.config import settings
+from app.db import models
+from app.db.session import Base, SessionLocal, engine
+from app.schemas.schemas import IntervencaoCreate, OrdemServicoCreate
+from app.services.video import extract_frames_from_video
+
 
 @pytest.fixture
 def db_session():

@@ -1,13 +1,9 @@
-import pytest
-from pathlib import Path
-from PIL import Image
-import numpy as np
-import io
 
-from app.services.idu import calculate_bairro_idu, calculate_municipal_aggregate, classify_idu_band
 from app.services.deduplication import cluster_detections_into_occurrences
-from app.services.spatial import haversine_distance, calculate_unique_observed_length_km
-from app.services.reporter import generate_automated_conclusion, export_occurrences_csv, export_occurrences_geojson
+from app.services.idu import calculate_bairro_idu
+from app.services.reporter import generate_automated_conclusion
+from app.services.spatial import haversine_distance
+
 
 def test_at06_idu_exact_example():
     """

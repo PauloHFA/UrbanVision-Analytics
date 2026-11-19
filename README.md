@@ -2,7 +2,10 @@
 **Sistema Integrado de Auditoria Automática de Infraestrutura Urbana e Severidade Viária**  
 *Implementação em estrita conformidade com o Caderno de Requisitos e Arquitetura de Referência (Requisitos v1.0, Expansão P1 e Diretrizes Estatutárias RN-01 a RN-07).*
 
-[![Test Suite](https://img.shields.io/badge/Testes-20%2F20%20Passing-brightgreen)](file:///tests)
+[![CI](https://github.com/PauloHFA/UrbanVision-Analytics/actions/workflows/ci.yml/badge.svg)](https://github.com/PauloHFA/UrbanVision-Analytics/actions/workflows/ci.yml)
+[![Test Suite](https://img.shields.io/badge/Testes-20%2F20%20Passing-brightgreen)](tests)
+
+> Acompanhamento de pendências e backlog em [`PENDENCIAS.md`](PENDENCIAS.md).
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com)
 [![PostgreSQL](https://img.shields.io/badge/PostGIS-16-336791.svg)](https://postgis.net)
@@ -63,11 +66,11 @@ O projeto atingiu maturidade operacional completa, com **5 Campanhas Oficiais Mu
 
 ### Relatórios Executivos Oficiais em PDF no Repositório (`data/reports/`)
 Todos os relatórios executivos correspondentes foram emitidos, validados e versionados no repositório:
-* [Relatório São Paulo - Central e Paulista](file:///data/reports/Relatorio_UrbanVision_cpg_2ec0a3a1ba1b_20261027_002827.pdf) (SHA-256: `df765148190b460d91126677881ce142dde2f101eb8473b453f6141c764ac295`)
-* [Relatório São Paulo - Oeste e Consolação](file:///data/reports/Relatorio_UrbanVision_cpg_ceaff8b77bfd_20261027_002830.pdf) (SHA-256: `86faf7f5236adad8f488c63f9de2a546bcb4b343bdbd75ff987e096e643b0c25`)
-* [Relatório Rio de Janeiro - Copacabana](file:///data/reports/Relatorio_UrbanVision_cpg_720d8a17d9a9_20261027_002831.pdf) (SHA-256: `7d13f8567e14e97b1f2e61aaf4cc823be3c4bbd01e919f4c74f6870b776e1e88`)
-* [Relatório Belo Horizonte - Savassi](file:///data/reports/Relatorio_UrbanVision_cpg_548b8c1497dd_20261027_002833.pdf) (SHA-256: `339cf8df0ce7b5765cadf6496e68085b1390e62fb9e68275371675e1d82504bc`)
-* [Relatório Curitiba - Batel](file:///data/reports/Relatorio_UrbanVision_cpg_2d658ec3ea05_20261027_002834.pdf) (SHA-256: `9b0da1ef046212fcaf30daf8f45acb8687b008da1c09ef330397fddd38df1032`)
+* [Relatório São Paulo - Central e Paulista](data/reports/Relatorio_UrbanVision_cpg_2ec0a3a1ba1b_20261027_002827.pdf) (SHA-256: `df765148190b460d91126677881ce142dde2f101eb8473b453f6141c764ac295`)
+* [Relatório São Paulo - Oeste e Consolação](data/reports/Relatorio_UrbanVision_cpg_ceaff8b77bfd_20261027_002830.pdf) (SHA-256: `86faf7f5236adad8f488c63f9de2a546bcb4b343bdbd75ff987e096e643b0c25`)
+* [Relatório Rio de Janeiro - Copacabana](data/reports/Relatorio_UrbanVision_cpg_720d8a17d9a9_20261027_002831.pdf) (SHA-256: `7d13f8567e14e97b1f2e61aaf4cc823be3c4bbd01e919f4c74f6870b776e1e88`)
+* [Relatório Belo Horizonte - Savassi](data/reports/Relatorio_UrbanVision_cpg_548b8c1497dd_20261027_002833.pdf) (SHA-256: `339cf8df0ce7b5765cadf6496e68085b1390e62fb9e68275371675e1d82504bc`)
+* [Relatório Curitiba - Batel](data/reports/Relatorio_UrbanVision_cpg_2d658ec3ea05_20261027_002834.pdf) (SHA-256: `9b0da1ef046212fcaf30daf8f45acb8687b008da1c09ef330397fddd38df1032`)
 
 ---
 
@@ -236,7 +239,7 @@ Inicializa os serviços orquestrados com volumes persistentes para uploads, reco
 
 ## 🖥️ 8. Painel Interativo de Degradação Urbana Viária
 
-O projeto conta com o artefato interativo [`dashboard_bairros.html`](file:///dashboard_bairros.html), desenvolvido em Tailwind CSS, que permite a navegação dinâmica entre as capitais homologadas, visualização das taxas de cobertura da malha, indicadores do IDU e distribuição de defeitos RDD2022.
+O projeto conta com o template web [`app/templates/dashboard.html`](app/templates/dashboard.html), desenvolvido em Tailwind CSS, que permite a navegação dinâmica entre as capitais homologadas, visualização das taxas de cobertura da malha, indicadores do IDU e distribuição de defeitos RDD2022.
 
 ---
 

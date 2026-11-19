@@ -1,15 +1,14 @@
-import json
 import logging
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any
+
 import httpx
-from shapely.geometry import shape, Polygon, MultiPolygon, LineString, MultiLineString
 
 from app.services.spatial import haversine_distance
 
 logger = logging.getLogger(__name__)
 
 # --- Base Curada de Bairros e Malhas Homologadas de São Paulo (Fallback e Offline) ---
-CURATED_SP_TERRITORIES: Dict[str, Dict[str, Any]] = {
+CURATED_SP_TERRITORIES: dict[str, dict[str, Any]] = {
     "Pinheiros": {
         "municipio": "São Paulo",
         "nome": "Pinheiros",
@@ -395,7 +394,7 @@ CURATED_SP_TERRITORIES: Dict[str, Dict[str, Any]] = {
     }
 }
 
-def calculate_linestring_length_km(coordinates: List[List[float]]) -> float:
+def calculate_linestring_length_km(coordinates: list[list[float]]) -> float:
     """Calcula a extensão geodésica em km de uma linha de coordenadas [lon, lat]."""
     if len(coordinates) < 2:
         return 0.0
@@ -406,7 +405,7 @@ def calculate_linestring_length_km(coordinates: List[List[float]]) -> float:
         total_m += haversine_distance(lat1, lon1, lat2, lon2)
     return round(total_m / 1000.0, 3)
 
-def calculate_geometry_length_km(geometry_dict: Dict[str, Any]) -> float:
+def calculate_geometry_length_km(geometry_dict: dict[str, Any]) -> float:
     """Calcula a extensão total em km de LineString ou MultiLineString."""
     g_type = geometry_dict.get("type", "")
     coords = geometry_dict.get("coordinates", [])
@@ -416,7 +415,7 @@ def calculate_geometry_length_km(geometry_dict: Dict[str, Any]) -> float:
         return round(sum(calculate_linestring_length_km(line) for line in coords), 3)
     return 0.0
 
-def build_overpass_query(municipio: str, bairro_nome: str, tipos_vias: List[str]) -> str:
+def build_overpass_query(municipio: str, bairro_nome: str, tipos_vias: list[str]) -> str:
     """Gera query Overpass QL para extrair polígono do bairro e vias estruturantes."""
     tipos_regex = "|".join(tipos_vias)
     query = f"""
@@ -435,10 +434,10 @@ def build_overpass_query(municipio: str, bairro_nome: str, tipos_vias: List[str]
     return query.strip()
 
 def parse_osm_elements(
-    elements: List[Dict[str, Any]], 
+    elements: list[dict[str, Any]], 
     bairro_nome: str, 
     municipio: str
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Processa retorno bruto do Overpass API e gera Bairro e Vias com malha elegível calculada."""
     bairro_poly = None
     vias = []
@@ -494,10 +493,10 @@ def parse_osm_elements(
 def fetch_osm_territory(
     municipio: str, 
     bairro_nome: str, 
-    tipos_vias: Optional[List[str]] = None,
+    tipos_vias: list[str] | None = None,
     overpass_url: str = "https://overpass-api.de/api/interpreter",
     timeout_sec: float = 8.0
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Obtém geometria do bairro e malha viária via OpenStreetMap (Overpass API).
     Caso a rede esteja indisponível ou ocorra timeout, utiliza a base cadastral homologada.
@@ -561,10 +560,10 @@ def fetch_osm_territory(
     }
 
 def import_geosampa_geojson(
-    bairro_feature: Dict[str, Any],
-    vias_features: Optional[List[Dict[str, Any]]] = None,
+    bairro_feature: dict[str, Any],
+    vias_features: list[dict[str, Any]] | None = None,
     municipio: str = "São Paulo"
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Importa arquivos padrão GeoSampa (Prefeitura de São Paulo) para formato do sistema.
     Lê geometrias WGS84 e calcula automaticamente extensões viárias.

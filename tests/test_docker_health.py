@@ -1,5 +1,6 @@
 from app.main import health_check
 
+
 def test_health_check_endpoint():
     """Valida o endpoint de health check para monitoramento de contêineres Docker/Kubernetes."""
     data = health_check()
@@ -12,6 +13,7 @@ def test_health_check_endpoint():
 def test_dashboard_page_rendering():
     """Valida renderização da interface web do dashboard (HTTP 200)."""
     from starlette.requests import Request
+
     from app.main import dashboard
 
     scope = {"type": "http", "method": "GET", "path": "/", "headers": []}

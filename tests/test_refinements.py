@@ -1,21 +1,18 @@
 import pytest
-from app.db.session import SessionLocal, Base, engine
-from app.db import models
-from app.schemas.schemas import (
-    OcorrenciasUnirRequest, OcorrenciaSepararRequest,
-    ParametrosCreate, ModeloCreate
-)
+
 from app.api.v1 import (
-    unir_ocorrencias,
-    separar_ocorrencia,
+    criar_configuracao_parametros,
+    listar_parametros,
     obter_territorio_bairros,
     obter_territorio_vias,
-    listar_modelos,
-    registrar_modelo,
-    listar_parametros,
-    criar_configuracao_parametros
+    separar_ocorrencia,
+    unir_ocorrencias,
 )
+from app.db import models
+from app.db.session import Base, SessionLocal, engine
+from app.schemas.schemas import OcorrenciaSepararRequest, OcorrenciasUnirRequest, ParametrosCreate
 from app.services.ingestion import parse_manifest_csv
+
 
 @pytest.fixture
 def db_session():

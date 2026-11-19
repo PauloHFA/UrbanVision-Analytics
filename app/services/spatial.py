@@ -1,7 +1,9 @@
-import math
 import json
-from typing import List, Tuple, Dict, Any, Optional
-from shapely.geometry import Point, LineString, Polygon, shape
+import math
+from typing import Any
+
+from shapely.geometry import Point, shape
+
 
 def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     """
@@ -18,7 +20,7 @@ def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     c = 2.0 * math.atan2(math.sqrt(a), math.sqrt(1.0 - a))
     return R * c
 
-def calculate_track_length_km(coordinates: List[Tuple[float, float]]) -> float:
+def calculate_track_length_km(coordinates: list[tuple[float, float]]) -> float:
     """Calcula o comprimento total de uma trilha GPS em km."""
     if len(coordinates) < 2:
         return 0.0
@@ -35,10 +37,10 @@ def calculate_track_length_km(coordinates: List[Tuple[float, float]]) -> float:
 def match_point_to_territory(
     lat: float, 
     lon: float, 
-    bairros: List[Dict[str, Any]], 
-    vias: List[Dict[str, Any]],
+    bairros: list[dict[str, Any]], 
+    vias: list[dict[str, Any]],
     tolerance_meters: float = 25.0
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Associa uma coordenada a um bairro e a uma via por proximidade geométrica (RF-10).
     Sinaliza se houver ambiguidade ou se estiver fora da tolerância.
@@ -93,7 +95,7 @@ def match_point_to_territory(
     }
 
 def calculate_unique_observed_length_km(
-    gps_points: List[Tuple[float, float]], 
+    gps_points: list[tuple[float, float]], 
     grid_size_meters: float = 50.0
 ) -> float:
     """

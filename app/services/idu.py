@@ -1,5 +1,7 @@
-from typing import Dict, Any, List, Optional
+from typing import Any
+
 from app.core.config import settings
+
 
 def classify_idu_band(score: float) -> str:
     """
@@ -26,9 +28,9 @@ def calculate_bairro_idu(
     s_ref: float = settings.DEFAULT_S_REF,
     min_coverage_pct: float = settings.MIN_COVERAGE_PCT,
     min_l_obs_km: float = settings.MIN_L_OBS_KM,
-    weights: Optional[Dict[str, float]] = None,
-    occurrences_by_class: Optional[Dict[str, int]] = None
-) -> Dict[str, Any]:
+    weights: dict[str, float] | None = None,
+    occurrences_by_class: dict[str, int] | None = None
+) -> dict[str, Any]:
     """
     Calcula os indicadores e o IDU-Pavimento para um bairro na janela de tempo especificada (Seção 08).
     
@@ -112,7 +114,7 @@ def calculate_bairro_idu(
         "faixa": faixa
     }
 
-def calculate_municipal_aggregate(bairros_resultados: List[Dict[str, Any]]) -> Dict[str, Any]:
+def calculate_municipal_aggregate(bairros_resultados: list[dict[str, Any]]) -> dict[str, Any]:
     """
     Calcula a comparação municipal agregada ponderada:
     Soma(N) / Soma(L_obs) dos territórios elegíveis (não média simples dos bairros).

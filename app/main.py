@@ -1,12 +1,13 @@
-from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from fastapi.middleware.cors import CORSMiddleware
 from pathlib import Path
 
-from app.core.config import settings, CROPS_DIR, UPLOAD_DIR
-from app.db.session import engine, Base
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
 from app.api.v1 import router as api_router
+from app.core.config import CROPS_DIR, UPLOAD_DIR, settings
+from app.db.session import Base, engine
 
 # Inicialização do banco de dados (com suporte a PostGIS no PostgreSQL)
 if settings.DATABASE_URL.startswith("postgres"):

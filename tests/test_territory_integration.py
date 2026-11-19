@@ -1,20 +1,19 @@
-import pytest
 import json
-from app.db.session import SessionLocal, Base, engine
-from app.db import models
-from app.schemas.schemas import (
-    BairroCreate, ViaCreate,
-    ImportacaoTerritorioOSMRequest, ImportacaoGeoSampaRequest
-)
+
+import pytest
+
 from app.api.v1 import (
     cadastrar_bairro,
     cadastrar_via,
-    importar_territorio_osm,
     importar_territorio_geosampa,
+    importar_territorio_osm,
     obter_territorio_bairros,
-    obter_territorio_vias
 )
+from app.db import models
+from app.db.session import Base, SessionLocal, engine
+from app.schemas.schemas import BairroCreate, ImportacaoGeoSampaRequest, ImportacaoTerritorioOSMRequest, ViaCreate
 from app.services.territory import calculate_geometry_length_km
+
 
 @pytest.fixture
 def db_session():

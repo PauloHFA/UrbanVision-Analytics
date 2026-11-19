@@ -1,16 +1,18 @@
 from datetime import datetime
-from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field, ConfigDict
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
+
 
 # --- Campanhas ---
 class CampanhaCreate(BaseModel):
     municipio: str
     periodo: str
     responsavel: str
-    organizacao: Optional[str] = "Prefeitura Municipal"
-    area_alvo_geojson: Optional[str] = None
-    malha_versao: Optional[str] = "v1.0"
-    protocolo: Optional[str] = "Padrao_Carro_Urbano_1080p"
+    organizacao: str | None = "Prefeitura Municipal"
+    area_alvo_geojson: str | None = None
+    malha_versao: str | None = "v1.0"
+    protocolo: str | None = "Padrao_Carro_Urbano_1080p"
 
 class CampanhaResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -42,8 +44,8 @@ class LoteResponse(BaseModel):
 
 # --- Execuções ---
 class ExecucaoCreate(BaseModel):
-    modelo_id: Optional[str] = None
-    parametros: Optional[Dict[str, Any]] = None
+    modelo_id: str | None = None
+    parametros: dict[str, Any] | None = None
 
 class ExecucaoResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -56,7 +58,7 @@ class ExecucaoResponse(BaseModel):
     total_processado: int
     total_deteccoes: int
     data_inicio: datetime
-    data_fim: Optional[datetime] = None
+    data_fim: datetime | None = None
 
 # --- Ocorrências ---
 class RevisaoHistorico(BaseModel):
@@ -66,10 +68,10 @@ class RevisaoHistorico(BaseModel):
     autor: str
     data_utc: datetime
     decisao: str
-    classe_anterior: Optional[str] = None
-    classe_nova: Optional[str] = None
-    status_anterior: Optional[str] = None
-    status_novo: Optional[str] = None
+    classe_anterior: str | None = None
+    classe_nova: str | None = None
+    status_anterior: str | None = None
+    status_novo: str | None = None
     motivo: str
 
 class DeteccaoItem(BaseModel):
@@ -78,8 +80,8 @@ class DeteccaoItem(BaseModel):
     id: str
     classe: str
     confianca: float
-    bbox: List[float]
-    recorte_uri: Optional[str] = None
+    bbox: list[float]
+    recorte_uri: str | None = None
     midia_id: str
 
 class OcorrenciaResponse(BaseModel):
@@ -98,17 +100,17 @@ class OcorrenciaResponse(BaseModel):
     versao: int
     criado_em: datetime
     atualizado_em: datetime
-    deteccoes: List[DeteccaoItem] = []
-    revisoes: List[RevisaoHistorico] = []
+    deteccoes: list[DeteccaoItem] = []
+    revisoes: list[RevisaoHistorico] = []
 
 class OcorrenciaUpdate(BaseModel):
     versao_esperada: int = Field(..., description="Versão atual para detecção de concorrência otimista")
     revisor: str
     motivo: str
-    classe: Optional[str] = None
-    status: Optional[str] = None  # confirmada, rejeitada, resolvida
-    latitude: Optional[float] = None
-    longitude: Optional[float] = None
+    classe: str | None = None
+    status: str | None = None  # confirmada, rejeitada, resolvida
+    latitude: float | None = None
+    longitude: float | None = None
 
 # --- Indicadores IDU ---
 class IndicadorResponse(BaseModel):
@@ -128,7 +130,7 @@ class IndicadorResponse(BaseModel):
     s_ref: float
     faixa: str
     elegivel: bool
-    motivo_inelegivel: Optional[str] = None
+    motivo_inelegivel: str | None = None
     versao_metodologia: str
     data_calculo: datetime
 
@@ -136,7 +138,7 @@ class IndicadorResponse(BaseModel):
 class RelatorioCreate(BaseModel):
     campanha_id: str
     autor: str
-    s_ref: Optional[float] = 40.0
+    s_ref: float | None = 40.0
 
 class RelatorioResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -148,13 +150,13 @@ class RelatorioResponse(BaseModel):
     data_utc: datetime
     uri_pdf: str
     hash_pdf: str
-    texto_conclusao: Optional[str] = None
+    texto_conclusao: str | None = None
 
 
 
 # --- Unir e Separar Ocorrências (RF-09) ---
 class OcorrenciasUnirRequest(BaseModel):
-    ocorrencias_ids: List[str]
+    ocorrencias_ids: list[str]
     revisor: str
     motivo: str
 
@@ -167,9 +169,9 @@ class ModeloCreate(BaseModel):
     nome: str
     versao: str
     hash_pesos: str
-    dataset_referencia: Optional[str] = "RDD2022"
-    metricas: Optional[Dict[str, Any]] = None
-    status: Optional[str] = "avaliado"
+    dataset_referencia: str | None = "RDD2022"
+    metricas: dict[str, Any] | None = None
+    status: str | None = "avaliado"
 
 class ModeloResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -186,11 +188,11 @@ class ModeloResponse(BaseModel):
 # --- Administração de Parâmetros (RF-19) ---
 class ParametrosCreate(BaseModel):
     versao: str
-    s_ref: Optional[float] = 40.0
-    min_cobertura_pct: Optional[float] = 60.0
-    min_l_obs_km: Optional[float] = 1.0
-    raio_agrupamento_m: Optional[float] = 10.0
-    pesos_classes: Optional[Dict[str, float]] = None
+    s_ref: float | None = 40.0
+    min_cobertura_pct: float | None = 60.0
+    min_l_obs_km: float | None = 1.0
+    raio_agrupamento_m: float | None = 10.0
+    pesos_classes: dict[str, float] | None = None
     autor: str
     justificativa: str
 
@@ -215,8 +217,8 @@ class IntervencaoCreate(BaseModel):
     tipo: str = Field(..., description="dano_persistente, reparo_confirmado ou ausencia_observacao")
     descricao: str
     autor: str
-    data_inspecao: Optional[datetime] = None
-    evidencia_foto_uri: Optional[str] = None
+    data_inspecao: datetime | None = None
+    evidencia_foto_uri: str | None = None
 
 class IntervencaoResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -227,15 +229,15 @@ class IntervencaoResponse(BaseModel):
     descricao: str
     autor: str
     data_inspecao: datetime
-    evidencia_foto_uri: Optional[str] = None
+    evidencia_foto_uri: str | None = None
     criado_em: datetime
 
 # --- Integrações com Ordens de Serviço Municipais (RF-20) ---
 class OrdemServicoCreate(BaseModel):
     numero_os: str
-    orgao_responsavel: Optional[str] = "Secretaria de Obras e Infraestrutura Urbana"
-    status_os: Optional[str] = "aberta"
-    observacoes: Optional[str] = None
+    orgao_responsavel: str | None = "Secretaria de Obras e Infraestrutura Urbana"
+    status_os: str | None = "aberta"
+    observacoes: str | None = None
 
 class OrdemServicoResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -246,8 +248,8 @@ class OrdemServicoResponse(BaseModel):
     orgao_responsavel: str
     status_os: str
     data_abertura: datetime
-    data_conclusao: Optional[datetime] = None
-    observacoes: Optional[str] = None
+    data_conclusao: datetime | None = None
+    observacoes: str | None = None
     criado_em: datetime
 
 # --- Linha do Tempo e Histórico Completo da Ocorrência (RF-14) ---
@@ -261,17 +263,17 @@ class HistoricoOcorrenciaResponse(BaseModel):
     longitude: float
     via_nome: str
     bairro_nome: str
-    deteccoes: List[DeteccaoItem] = []
-    revisoes: List[RevisaoHistorico] = []
-    intervencoes: List[IntervencaoResponse] = []
-    ordens_servico: List[OrdemServicoResponse] = []
+    deteccoes: list[DeteccaoItem] = []
+    revisoes: list[RevisaoHistorico] = []
+    intervencoes: list[IntervencaoResponse] = []
+    ordens_servico: list[OrdemServicoResponse] = []
 
 # --- Gestão Territorial e Integrações Abertas (OSM / GeoSampa) ---
 class BairroCreate(BaseModel):
     municipio: str = "São Paulo"
     nome: str
     geometria_geojson: str
-    malha_elegivel_km: Optional[float] = 0.0
+    malha_elegivel_km: float | None = 0.0
 
 class BairroResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -286,8 +288,8 @@ class ViaCreate(BaseModel):
     bairro_nome: str
     nome_via: str
     geometria_geojson: str
-    extensao_km: Optional[float] = 0.1
-    elegivel: Optional[bool] = True
+    extensao_km: float | None = 0.1
+    elegivel: bool | None = True
 
 class ViaResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -302,14 +304,14 @@ class ViaResponse(BaseModel):
 class ImportacaoTerritorioOSMRequest(BaseModel):
     municipio: str = "São Paulo"
     bairro_nome: str
-    incluir_vias: Optional[bool] = True
-    tipos_vias: Optional[List[str]] = ["primary", "secondary", "tertiary", "residential"]
-    overpass_url: Optional[str] = "https://overpass-api.de/api/interpreter"
+    incluir_vias: bool | None = True
+    tipos_vias: list[str] | None = ["primary", "secondary", "tertiary", "residential"]
+    overpass_url: str | None = "https://overpass-api.de/api/interpreter"
 
 class ImportacaoGeoSampaRequest(BaseModel):
     municipio: str = "São Paulo"
-    bairro_feature: Dict[str, Any]
-    vias_features: Optional[List[Dict[str, Any]]] = None
+    bairro_feature: dict[str, Any]
+    vias_features: list[dict[str, Any]] | None = None
 
 class ImportacaoTerritorioResponse(BaseModel):
     bairro_id: str

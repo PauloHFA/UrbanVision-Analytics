@@ -1,10 +1,12 @@
-from typing import List, Dict, Any
+from typing import Any
+
 from app.services.spatial import haversine_distance
 
+
 def cluster_detections_into_occurrences(
-    detections_with_geo: List[Dict[str, Any]], 
+    detections_with_geo: list[dict[str, Any]], 
     radius_meters: float = 10.0
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Agrupa detecções brutas correlatas (múltiplos frames do mesmo dano)
     em Ocorrências Únicas (RF-09, RN-06).
@@ -12,7 +14,7 @@ def cluster_detections_into_occurrences(
     Cada detecção de entrada deve conter:
     - deteccao_id, classe, confianca, latitude, longitude, midia_id, recorte_uri
     """
-    clusters: List[List[Dict[str, Any]]] = []
+    clusters: list[list[dict[str, Any]]] = []
 
     for det in detections_with_geo:
         lat1 = det.get("latitude")

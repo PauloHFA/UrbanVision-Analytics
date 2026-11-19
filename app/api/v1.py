@@ -1,53 +1,60 @@
 import io
 import json
 import shutil
-from datetime import datetime, timezone
+import uuid
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Query, Response
-from fastapi.responses import FileResponse, PlainTextResponse
+
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
-from app.core.config import settings, UPLOAD_DIR, CROPS_DIR
-from app.db.session import get_db
+from app.core.config import UPLOAD_DIR, settings
 from app.db import models
+from app.db.session import get_db
 from app.schemas.schemas import (
-    CampanhaCreate, CampanhaResponse,
-    LoteCreate, LoteResponse,
-    ExecucaoCreate, ExecucaoResponse,
-    OcorrenciaResponse, OcorrenciaUpdate,
-    OcorrenciasUnirRequest, OcorrenciaSepararRequest,
-    ModeloCreate, ModeloResponse,
-    ParametrosCreate, ParametrosResponse,
-    IndicadorResponse,
-    RelatorioCreate, RelatorioResponse,
-    IntervencaoCreate, IntervencaoResponse,
-    OrdemServicoCreate, OrdemServicoResponse,
+    BairroCreate,
+    BairroResponse,
+    CampanhaCreate,
+    CampanhaResponse,
+    ExecucaoResponse,
     HistoricoOcorrenciaResponse,
-    BairroCreate, BairroResponse,
-    ViaCreate, ViaResponse,
-    ImportacaoTerritorioOSMRequest, ImportacaoGeoSampaRequest,
-    ImportacaoTerritorioResponse
+    ImportacaoGeoSampaRequest,
+    ImportacaoTerritorioOSMRequest,
+    ImportacaoTerritorioResponse,
+    IndicadorResponse,
+    IntervencaoCreate,
+    IntervencaoResponse,
+    LoteCreate,
+    LoteResponse,
+    ModeloCreate,
+    ModeloResponse,
+    OcorrenciaResponse,
+    OcorrenciaSepararRequest,
+    OcorrenciasUnirRequest,
+    OcorrenciaUpdate,
+    OrdemServicoCreate,
+    OrdemServicoResponse,
+    ParametrosCreate,
+    ParametrosResponse,
+    RelatorioCreate,
+    RelatorioResponse,
+    ViaCreate,
+    ViaResponse,
 )
-from app.services.ingestion import (
-    compute_sha256, extract_exif_metadata, check_image_quality, parse_manifest_csv
-)
-from app.services.video import extract_frames_from_video
-from app.services.detector import DamageDetector
 from app.services.deduplication import cluster_detections_into_occurrences
-from app.services.spatial import match_point_to_territory, calculate_unique_observed_length_km
+from app.services.detector import DamageDetector
 from app.services.idu import calculate_bairro_idu, calculate_municipal_aggregate
+from app.services.ingestion import check_image_quality, compute_sha256, extract_exif_metadata, parse_manifest_csv
 from app.services.reporter import (
-    generate_automated_conclusion,
     export_occurrences_csv,
     export_occurrences_geojson,
-    generate_executive_pdf
+    generate_automated_conclusion,
+    generate_executive_pdf,
 )
-from app.services.territory import (
-    fetch_osm_territory,
-    import_geosampa_geojson,
-    calculate_geometry_length_km
-)
+from app.services.spatial import calculate_unique_observed_length_km, match_point_to_territory
+from app.services.territory import fetch_osm_territory, import_geosampa_geojson
+from app.services.video import extract_frames_from_video
 
 router = APIRouter(prefix="/v1")
 
@@ -68,7 +75,7 @@ def criar_campanha(campanha_in: CampanhaCreate, db: Session = Depends(get_db)):
     db.refresh(campanha)
     return campanha
 
-@router.get("/campanhas", response_model=List[CampanhaResponse])
+@router.get("/campanhas", response_model=list[CampanhaResponse])
 def listar_campanhas(db: Session = Depends(get_db)):
     return db.query(models.Campanha).all()
 
@@ -88,8 +95,8 @@ def criar_lote(lote_in: LoteCreate, db: Session = Depends(get_db)):
 @router.post("/lotes/{id}/imagens")
 def upload_imagens_lote(
     id: str,
-    arquivos: List[UploadFile] = File(...),
-    manifesto: Optional[UploadFile] = File(None),
+    arquivos: list[UploadFile] = File(...),
+    manifesto: UploadFile | None = File(None),
     db: Session = Depends(get_db)
 ):
     lote = db.query(models.Lote).filter(models.Lote.id == id).first()
@@ -111,7 +118,7 @@ def upload_imagens_lote(
 
     for arq in arquivos:
         file_bytes = arq.file.read()
-        sha256 = compute_sha256_bytes = __import__('hashlib').sha256(file_bytes).hexdigest()
+        sha256 = __import__('hashlib').sha256(file_bytes).hexdigest()
         
         # Deduplicação por hash (RF-02)
         duplicata = db.query(models.Midia).filter(
@@ -221,7 +228,7 @@ def iniciar_execucao_inferencia(id: str, db: Session = Depends(get_db)):
     db.refresh(execucao)
 
     # Carrega parâmetros ativos versionados (RF-19)
-    cfg_param = db.query(models.ConfiguracaoParametros).filter(models.ConfiguracaoParametros.ativo == True).first()
+    cfg_param = db.query(models.ConfiguracaoParametros).filter(models.ConfiguracaoParametros.ativo.is_(True)).first()
     raio_agrupamento = cfg_param.raio_agrupamento_m if cfg_param else settings.DEDUPLICATION_RADIUS_METERS
 
     detector = DamageDetector()
@@ -322,7 +329,7 @@ def iniciar_execucao_inferencia(id: str, db: Session = Depends(get_db)):
                 ocorrencia.deteccoes.append(det_obj)
 
     execucao.status = "concluida"
-    execucao.data_fim = datetime.now(timezone.utc)
+    execucao.data_fim = datetime.now(UTC)
     lote.status = "concluido"
     db.commit()
     db.refresh(execucao)
@@ -336,12 +343,12 @@ def obter_execucao(id: str, db: Session = Depends(get_db)):
     return execucao
 
 # --- 4. Ocorrências e Revisão Técnica ---
-@router.get("/ocorrencias", response_model=List[OcorrenciaResponse])
+@router.get("/ocorrencias", response_model=list[OcorrenciaResponse])
 def listar_ocorrencias(
-    campanha_id: Optional[str] = None,
-    classe: Optional[str] = None,
-    status: Optional[str] = None,
-    bairro: Optional[str] = None,
+    campanha_id: str | None = None,
+    classe: str | None = None,
+    status: str | None = None,
+    bairro: str | None = None,
     limit: int = Query(100, le=500),
     db: Session = Depends(get_db)
 ):
@@ -387,7 +394,7 @@ def revisar_ocorrencia(id: str, payload: OcorrenciaUpdate, db: Session = Depends
         occ.longitude = payload.longitude
 
     occ.versao += 1
-    occ.atualizado_em = datetime.now(timezone.utc)
+    occ.atualizado_em = datetime.now(UTC)
 
     # Registra trilha de auditoria da revisão
     revisao = models.Revisao(
@@ -406,7 +413,7 @@ def revisar_ocorrencia(id: str, payload: OcorrenciaUpdate, db: Session = Depends
     return occ
 
 # --- 5. Indicadores IDU ---
-@router.get("/indicadores", response_model=List[IndicadorResponse])
+@router.get("/indicadores", response_model=list[IndicadorResponse])
 def obter_indicadores(
     campanha_id: str, 
     recalcular: bool = False,
@@ -655,7 +662,7 @@ def unir_ocorrencias(payload: OcorrenciasUnirRequest, db: Session = Depends(get_
 
     principal.versao += 1
     principal.status = "confirmada"
-    principal.atualizado_em = datetime.now(timezone.utc)
+    principal.atualizado_em = datetime.now(UTC)
 
     # Registra trilha de auditoria
     revisao = models.Revisao(
@@ -676,7 +683,7 @@ def unir_ocorrencias(payload: OcorrenciasUnirRequest, db: Session = Depends(get_
     db.refresh(principal)
     return principal
 
-@router.post("/ocorrencias/{id}/separar", response_model=List[OcorrenciaResponse])
+@router.post("/ocorrencias/{id}/separar", response_model=list[OcorrenciaResponse])
 def separar_ocorrencia(id: str, payload: OcorrenciaSepararRequest, db: Session = Depends(get_db)):
     """
     Desmembramento manual de ocorrência agrupada (RF-09):
@@ -695,7 +702,7 @@ def separar_ocorrencia(id: str, payload: OcorrenciaSepararRequest, db: Session =
     # Mantém a primeira na ocorrência original
     occ.deteccoes = [dets[0]]
     occ.versao += 1
-    occ.atualizado_em = datetime.now(timezone.utc)
+    occ.atualizado_em = datetime.now(UTC)
     
     # Cria ocorrências individuais para as demais detecções
     for d in dets[1:]:
@@ -963,7 +970,7 @@ def importar_territorio_geosampa(payload: ImportacaoGeoSampaRequest, db: Session
     )
 
 # --- 9. Modelos de IA (Seção 06 e Seção 10) ---
-@router.get("/modelos", response_model=List[ModeloResponse])
+@router.get("/modelos", response_model=list[ModeloResponse])
 def listar_modelos(db: Session = Depends(get_db)):
     return db.query(models.Modelo).all()
 
@@ -983,7 +990,7 @@ def registrar_modelo(payload: ModeloCreate, db: Session = Depends(get_db)):
     return modelo
 
 # --- 10. Administração e Governança de Parâmetros (RF-19) ---
-@router.get("/administracao/parametros", response_model=List[ParametrosResponse])
+@router.get("/administracao/parametros", response_model=list[ParametrosResponse])
 def listar_parametros(db: Session = Depends(get_db)):
     params = db.query(models.ConfiguracaoParametros).order_by(models.ConfiguracaoParametros.criado_em.desc()).all()
     if not params:
@@ -1052,7 +1059,7 @@ def registrar_intervencao_reinspecao(id: str, payload: IntervencaoCreate, db: Se
     if not occ:
         raise HTTPException(status_code=404, detail="Ocorrência não encontrada")
 
-    data_inspecao = payload.data_inspecao or datetime.now(timezone.utc)
+    data_inspecao = payload.data_inspecao or datetime.now(UTC)
 
     intervencao = models.Intervencao(
         ocorrencia_id=occ.id,
@@ -1074,7 +1081,7 @@ def registrar_intervencao_reinspecao(id: str, payload: IntervencaoCreate, db: Se
         occ.status = "confirmada"
 
     occ.versao += 1
-    occ.atualizado_em = datetime.now(timezone.utc)
+    occ.atualizado_em = datetime.now(UTC)
 
     # Trilha de auditoria
     revisao = models.Revisao(
@@ -1113,7 +1120,7 @@ def vincular_ordem_servico(id: str, payload: OrdemServicoCreate, db: Session = D
     db.refresh(os_model)
     return os_model
 
-@router.get("/ordens-servico", response_model=List[OrdemServicoResponse])
+@router.get("/ordens-servico", response_model=list[OrdemServicoResponse])
 def listar_ordens_servico(db: Session = Depends(get_db)):
     return db.query(models.OrdemServico).all()
 
@@ -1149,7 +1156,7 @@ def upload_processar_video_lote(
     id: str,
     video: UploadFile = File(...),
     taxa_amostragem_segundos: float = Form(1.0),
-    trilha_gps_csv: Optional[UploadFile] = File(None),
+    trilha_gps_csv: UploadFile | None = File(None),
     db: Session = Depends(get_db)
 ):
     """

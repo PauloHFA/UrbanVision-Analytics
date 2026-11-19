@@ -1,22 +1,23 @@
-import io
 import csv
-import json
 import hashlib
-from datetime import datetime, timezone
+import io
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Any
 
-from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib import colors
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, Image as RLImage
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.platypus import Image as RLImage
+from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from app.core.config import REPORTS_DIR, settings
 
+
 def generate_automated_conclusion(
-    bairro_res: Dict[str, Any], 
-    d_municipal: Optional[float], 
-    class_distribution: Dict[str, int]
+    bairro_res: dict[str, Any], 
+    d_municipal: float | None, 
+    class_distribution: dict[str, int]
 ) -> str:
     """
     Gera texto determinístico de conclusão baseado exclusivamente em métricas verificadas (RF-16).
@@ -52,7 +53,7 @@ def generate_automated_conclusion(
     )
     return texto
 
-def export_occurrences_csv(occurrences: List[Dict[str, Any]]) -> str:
+def export_occurrences_csv(occurrences: list[dict[str, Any]]) -> str:
     """Exporta lista de ocorrências em formato CSV estruturado (RF-18)."""
     output = io.StringIO()
     writer = csv.writer(output)
@@ -77,7 +78,7 @@ def export_occurrences_csv(occurrences: List[Dict[str, Any]]) -> str:
         ])
     return output.getvalue()
 
-def export_occurrences_geojson(occurrences: List[Dict[str, Any]]) -> Dict[str, Any]:
+def export_occurrences_geojson(occurrences: list[dict[str, Any]]) -> dict[str, Any]:
     """Exporta lista de ocorrências em padrão GeoJSON WGS84 FeatureCollection (RF-18)."""
     features = []
     for occ in occurrences:
@@ -111,9 +112,9 @@ def export_occurrences_geojson(occurrences: List[Dict[str, Any]]) -> Dict[str, A
     }
 
 def generate_comparative_chart_image(
-    indicadores: List[Dict[str, Any]],
-    d_municipal: Optional[float],
-    ocorrencias: List[Dict[str, Any]],
+    indicadores: list[dict[str, Any]],
+    d_municipal: float | None,
+    ocorrencias: list[dict[str, Any]],
     save_path: Path
 ) -> Path:
     """Gera visualização gráfica executiva com barras comparativas e tipologia RDD2022."""
@@ -184,13 +185,13 @@ def generate_comparative_chart_image(
     return save_path
 
 def generate_executive_pdf(
-    campanha: Dict[str, Any],
-    indicadores: List[Dict[str, Any]],
-    d_municipal: Optional[float],
-    ocorrencias: List[Dict[str, Any]],
-    conclusoes: List[str],
+    campanha: dict[str, Any],
+    indicadores: list[dict[str, Any]],
+    d_municipal: float | None,
+    ocorrencias: list[dict[str, Any]],
+    conclusoes: list[str],
     autor: str
-) -> Tuple[Path, str]:
+) -> tuple[Path, str]:
     """
     Gera Relatório Executivo em PDF com ReportLab conforme RF-17.
     Retorna o caminho do arquivo e o hash SHA-256.
@@ -258,7 +259,7 @@ def generate_executive_pdf(
         f"<b>Campanha:</b> {campanha.get('id')} | "
         f"<b>Período:</b> {campanha.get('periodo')} | "
         f"<b>Responsável Técnico:</b> {autor} | "
-        f"<b>Emissão:</b> {datetime.now(timezone.utc).strftime('%d/%m/%Y %H:%M UTC')}",
+        f"<b>Emissão:</b> {datetime.now(UTC).strftime('%d/%m/%Y %H:%M UTC')}",
         body_style
     ))
     elements.append(Spacer(1, 12))
@@ -302,7 +303,7 @@ def generate_executive_pdf(
         elements.append(Paragraph("2. Análise Gráfica Comparativa e Tipologia de Danos", h2_style))
         elements.append(RLImage(str(chart_path), width=523, height=150))
         elements.append(Spacer(1, 10))
-    except Exception as e:
+    except Exception:
         pass
 
     # Seção 3: Conclusões Automatizadas

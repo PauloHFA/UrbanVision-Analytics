@@ -1,22 +1,24 @@
-import sys
 import json
 import random
-from datetime import datetime, timezone, timedelta
+import sys
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from PIL import Image
 from shapely.geometry import Point, shape
-from app.core.config import UPLOAD_DIR, CROPS_DIR, REPORTS_DIR, settings
-from app.db.session import SessionLocal, Base, engine
+
+from app.core.config import CROPS_DIR, REPORTS_DIR, UPLOAD_DIR
 from app.db import models
-from app.services.ingestion import compute_sha256
+from app.db.session import Base, SessionLocal, engine
 from app.services.deduplication import cluster_detections_into_occurrences
-from app.services.spatial import match_point_to_territory, calculate_unique_observed_length_km
 from app.services.idu import calculate_bairro_idu, calculate_municipal_aggregate
-from app.services.reporter import generate_executive_pdf, generate_automated_conclusion
+from app.services.ingestion import compute_sha256
+from app.services.reporter import generate_automated_conclusion, generate_executive_pdf
+from app.services.spatial import calculate_unique_observed_length_km, match_point_to_territory
 from app.services.territory import fetch_osm_territory
+
 
 def create_sample_image(filename: str, dt: datetime, color=(75, 80, 85)) -> Path:
     img_path = UPLOAD_DIR / filename
@@ -65,7 +67,7 @@ def run_campaign_pipeline(
     lote_id = str(lote.id)
 
     midias = []
-    base_time = datetime(2026, 10, 26, 8, 30, tzinfo=timezone.utc)
+    base_time = datetime(2026, 10, 26, 8, 30, tzinfo=UTC)
 
     # 2. Registra Bairros e Vias
     bairros_db = []

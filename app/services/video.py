@@ -1,14 +1,15 @@
-import math
 import uuid
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from datetime import datetime, timezone, timedelta
-from typing import List, Dict, Any, Optional, Tuple
+from typing import Any
+
 import cv2
+
 
 def interpolate_gps(
     time_sec: float, 
-    gps_track: List[Dict[str, Any]]
-) -> Tuple[Optional[float], Optional[float]]:
+    gps_track: list[dict[str, Any]]
+) -> tuple[float | None, float | None]:
     """
     Interpola coordenadas de latitude e longitude ao longo do tempo do vídeo.
     Cada ponto do track GPS deve conter: 'offset_sec', 'latitude', 'longitude'.
@@ -44,9 +45,9 @@ def extract_frames_from_video(
     output_dir: Path,
     sample_rate_sec: float = 1.0,
     max_frames: int = 500,
-    base_timestamp_utc: Optional[datetime] = None,
-    gps_track: Optional[List[Dict[str, Any]]] = None
-) -> Dict[str, Any]:
+    base_timestamp_utc: datetime | None = None,
+    gps_track: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
     """
     Processador e Amostrador de Vídeo com Sincronização GPS (RF-07).
     Amostra quadros em taxa configurável (default: 1 quadro por segundo),
@@ -63,7 +64,7 @@ def extract_frames_from_video(
 
     frame_interval = max(1, int(round(fps * sample_rate_sec)))
     if base_timestamp_utc is None:
-        base_timestamp_utc = datetime.now(timezone.utc)
+        base_timestamp_utc = datetime.now(UTC)
 
     extracted = []
     current_frame = 0

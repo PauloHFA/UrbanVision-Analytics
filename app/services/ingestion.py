@@ -1,9 +1,11 @@
 import hashlib
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional, Tuple, Dict, Any
-from PIL import Image, ExifTags
+from typing import Any
+
 import numpy as np
+from PIL import ExifTags, Image
+
 
 def compute_sha256(file_path: Path) -> str:
     hasher = hashlib.sha256()
@@ -12,7 +14,7 @@ def compute_sha256(file_path: Path) -> str:
             hasher.update(chunk)
     return hasher.hexdigest()
 
-def _convert_to_degrees(value) -> Optional[float]:
+def _convert_to_degrees(value) -> float | None:
     """Converte coordenadas GPS em formato EXIF (graus, minutos, segundos) para graus decimais."""
     try:
         if isinstance(value, (tuple, list)) and len(value) == 3:
@@ -24,7 +26,7 @@ def _convert_to_degrees(value) -> Optional[float]:
     except Exception:
         return None
 
-def extract_exif_metadata(image_path: Path) -> Dict[str, Any]:
+def extract_exif_metadata(image_path: Path) -> dict[str, Any]:
     """Extrai GPS, timestamp e dados técnicos do EXIF da imagem."""
     metadata = {
         "timestamp_utc": None,
@@ -48,7 +50,7 @@ def extract_exif_metadata(image_path: Path) -> Dict[str, Any]:
             if dt_str:
                 try:
                     dt = datetime.strptime(str(dt_str), "%Y:%m:%d %H:%M:%S")
-                    metadata["timestamp_utc"] = dt.replace(tzinfo=timezone.utc)
+                    metadata["timestamp_utc"] = dt.replace(tzinfo=UTC)
                 except Exception:
                     pass
 
@@ -90,7 +92,7 @@ def extract_exif_metadata(image_path: Path) -> Dict[str, Any]:
 
     return metadata
 
-def check_image_quality(image_path: Path, metadata: Dict[str, Any]) -> Tuple[str, Optional[str]]:
+def check_image_quality(image_path: Path, metadata: dict[str, Any]) -> tuple[str, str | None]:
     """
     Avalia a qualidade técnica da captura conforme RF-04:
     - Nitidez (Laplacian variance)
@@ -138,7 +140,7 @@ def check_image_quality(image_path: Path, metadata: Dict[str, Any]) -> Tuple[str
 
 
 
-def parse_manifest_csv(manifest_content: str) -> Dict[str, Dict[str, Any]]:
+def parse_manifest_csv(manifest_content: str) -> dict[str, dict[str, Any]]:
     """
     Interpreta arquivo de manifesto CSV de apoio georreferenciado (RF-02, RF-03).
     Campos suportados: media_id/filename, timestamp, latitude/lat, longitude/lon, precisao/accuracy.

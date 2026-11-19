@@ -1,10 +1,11 @@
 import uuid
-from datetime import datetime, timezone
-from sqlalchemy import (
-    Column, String, Integer, Float, DateTime, ForeignKey, Boolean, Text, Table
-)
+from datetime import UTC, datetime
+
+from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Integer, String, Table, Text
 from sqlalchemy.orm import relationship
+
 from app.db.session import Base
+
 
 def generate_id(prefix: str) -> str:
     return f"{prefix}_{uuid.uuid4().hex[:12]}"
@@ -29,7 +30,7 @@ class Campanha(Base):
     responsavel = Column(String, nullable=False)
     malha_versao = Column(String, default="v1.0")
     protocolo = Column(String, default="Padrao_Carro_Urbano_1080p")
-    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    criado_em = Column(DateTime, default=lambda: datetime.now(UTC))
 
     lotes = relationship("Lote", back_populates="campanha", cascade="all, delete-orphan")
     ocorrencias = relationship("Ocorrencia", back_populates="campanha")
@@ -46,7 +47,7 @@ class Lote(Base):
     total_imagens = Column(Integer, default=0)
     total_validas = Column(Integer, default=0)
     total_rejeitadas = Column(Integer, default=0)
-    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    criado_em = Column(DateTime, default=lambda: datetime.now(UTC))
 
     campanha = relationship("Campanha", back_populates="lotes")
     midias = relationship("Midia", back_populates="lote", cascade="all, delete-orphan")
@@ -72,7 +73,7 @@ class Midia(Base):
     fonte_gps = Column(String, default="exif")  # exif, manifesto_csv, manual, desconhecida
     status_qualidade = Column(String, default="valida")  # valida, descarte_nitidez, descarte_exposicao, descarte_sem_gps
     motivo_descarte = Column(String, nullable=True)
-    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    criado_em = Column(DateTime, default=lambda: datetime.now(UTC))
 
     lote = relationship("Lote", back_populates="midias")
     deteccoes = relationship("Deteccao", back_populates="midia")
@@ -88,7 +89,7 @@ class Modelo(Base):
     dataset_referencia = Column(String, default="RDD2022")
     metricas_json = Column(Text, default="{}")
     status = Column(String, default="ativo")  # experimental, avaliado, aprovado, ativo, descontinuado
-    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    criado_em = Column(DateTime, default=lambda: datetime.now(UTC))
 
     execucoes = relationship("Execucao", back_populates="modelo")
 
@@ -106,7 +107,7 @@ class Execucao(Base):
     total_processado = Column(Integer, default=0)
     total_deteccoes = Column(Integer, default=0)
     erros_json = Column(Text, default="[]")
-    data_inicio = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    data_inicio = Column(DateTime, default=lambda: datetime.now(UTC))
     data_fim = Column(DateTime, nullable=True)
 
     modelo = relationship("Modelo", back_populates="execucoes")
@@ -148,8 +149,8 @@ class Ocorrencia(Base):
     via_nome = Column(String, default="Via Não Atribuída")
     bairro_nome = Column(String, default="Bairro Não Atribuído")
     versao = Column(Integer, default=1)  # Controle de concorrência otimista (PATCH 409 em caso de conflito)
-    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    atualizado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+    criado_em = Column(DateTime, default=lambda: datetime.now(UTC))
+    atualizado_em = Column(DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
 
     campanha = relationship("Campanha", back_populates="ocorrencias")
     deteccoes = relationship("Deteccao", secondary=ocorrencia_deteccao, back_populates="ocorrencias")
@@ -166,9 +167,9 @@ class Intervencao(Base):
     tipo = Column(String, nullable=False)  # dano_persistente, reparo_confirmado, ausencia_observacao (RF-14)
     descricao = Column(Text, nullable=False)
     autor = Column(String, nullable=False)
-    data_inspecao = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    data_inspecao = Column(DateTime, default=lambda: datetime.now(UTC))
     evidencia_foto_uri = Column(String, nullable=True)
-    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    criado_em = Column(DateTime, default=lambda: datetime.now(UTC))
 
     ocorrencia = relationship("Ocorrencia", back_populates="intervencoes")
 
@@ -181,10 +182,10 @@ class OrdemServico(Base):
     numero_os = Column(String, nullable=False, index=True)
     orgao_responsavel = Column(String, default="Secretaria de Infraestrutura Urbana")
     status_os = Column(String, default="aberta")  # aberta, em_execucao, concluida, cancelada (RF-20)
-    data_abertura = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    data_abertura = Column(DateTime, default=lambda: datetime.now(UTC))
     data_conclusao = Column(DateTime, nullable=True)
     observacoes = Column(Text, nullable=True)
-    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    criado_em = Column(DateTime, default=lambda: datetime.now(UTC))
 
     ocorrencia = relationship("Ocorrencia", back_populates="ordens_servico")
 
@@ -195,7 +196,7 @@ class Revisao(Base):
     id = Column(String, primary_key=True, default=lambda: generate_id("rev"))
     ocorrencia_id = Column(String, ForeignKey("ocorrencias.id"), nullable=False)
     autor = Column(String, nullable=False)
-    data_utc = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    data_utc = Column(DateTime, default=lambda: datetime.now(UTC))
     decisao = Column(String, nullable=False)  # confirmada, rejeitada, corrigida, reclassificada
     classe_anterior = Column(String, nullable=True)
     classe_nova = Column(String, nullable=True)
@@ -246,7 +247,7 @@ class IndicadorIDU(Base):
     elegivel = Column(Boolean, default=True)
     motivo_inelegivel = Column(String, nullable=True)
     versao_metodologia = Column(String, default="1.0")
-    data_calculo = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    data_calculo = Column(DateTime, default=lambda: datetime.now(UTC))
 
     campanha = relationship("Campanha", back_populates="indicadores")
 
@@ -258,7 +259,7 @@ class Relatorio(Base):
     campanha_id = Column(String, ForeignKey("campanhas.id"), nullable=False)
     versao = Column(String, default="1.0")
     autor = Column(String, nullable=False)
-    data_utc = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    data_utc = Column(DateTime, default=lambda: datetime.now(UTC))
     uri_pdf = Column(String, nullable=False)
     hash_pdf = Column(String, nullable=False)
     snapshot_filtros_json = Column(Text, default="{}")
@@ -280,6 +281,6 @@ class ConfiguracaoParametros(Base):
     ativo = Column(Boolean, default=True)
     autor = Column(String, default="Sistema")
     justificativa = Column(Text, default="Parâmetros iniciais de calibração do piloto")
-    criado_em = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    criado_em = Column(DateTime, default=lambda: datetime.now(UTC))
 
 

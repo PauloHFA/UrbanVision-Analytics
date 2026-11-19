@@ -1,8 +1,11 @@
 import uuid
 from pathlib import Path
-from typing import List, Dict, Any, Optional
+from typing import Any
+
 from PIL import Image
+
 from app.core.config import CROPS_DIR, settings
+
 
 class DamageDetector:
     """
@@ -14,7 +17,7 @@ class DamageDetector:
     - D40: Buraco (Pothole)
     """
 
-    def __init__(self, weights_path: Optional[str] = None):
+    def __init__(self, weights_path: str | None = None):
         self.weights_path = weights_path
         self._model = None
         if weights_path and Path(weights_path).exists():
@@ -24,7 +27,7 @@ class DamageDetector:
             except Exception:
                 self._model = None
 
-    def detect(self, image_path: Path, min_confidence: float = 0.25) -> List[Dict[str, Any]]:
+    def detect(self, image_path: Path, min_confidence: float = 0.25) -> list[dict[str, Any]]:
         """
         Executa inferência na imagem e extrai caixas delimitadoras e recortes (crops).
         Retorna lista de dicionários com classe, confiança, bbox [xmin, ymin, xmax, ymax], e recorte_uri.

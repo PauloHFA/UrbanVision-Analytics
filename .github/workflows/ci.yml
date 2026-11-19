@@ -1,0 +1,32 @@
+name: UrbanVision Analytics CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  lint-and-test:
+    name: Ruff Lint & Pytest (Python 3.12)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install fastapi httpx jinja2 opencv-python-headless pillow psycopg2-binary pydantic pytest python-multipart reportlab shapely sqlalchemy uvicorn ruff
+
+      - name: Ruff Lint
+        run: ruff check .
+
+      - name: Run Pytest Suite
+        run: python -m pytest -v

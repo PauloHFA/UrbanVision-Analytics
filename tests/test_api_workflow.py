@@ -1,19 +1,21 @@
 import pytest
 from fastapi import HTTPException
-from app.db.session import SessionLocal, engine, Base
-from app.db import models
-from app.schemas.schemas import CampanhaCreate, LoteCreate, OcorrenciaUpdate, RelatorioCreate
+
 from app.api.v1 import (
     criar_campanha,
     criar_lote,
+    exportar_csv,
+    exportar_geojson,
+    gerar_relatorio,
     iniciar_execucao_inferencia,
     listar_ocorrencias,
-    revisar_ocorrencia,
     obter_indicadores,
-    gerar_relatorio,
-    exportar_csv,
-    exportar_geojson
+    revisar_ocorrencia,
 )
+from app.db import models
+from app.db.session import Base, SessionLocal, engine
+from app.schemas.schemas import CampanhaCreate, LoteCreate, OcorrenciaUpdate, RelatorioCreate
+
 
 @pytest.fixture
 def db_session():
